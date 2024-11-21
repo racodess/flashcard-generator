@@ -5,7 +5,7 @@ import sys, os
 load_dotenv()
 my_secret = os.getenv("HIDE_THIS")
 
-client = Anthropic()
+client = Anthropic(api_key=my_secret)
 
 #                                      Cost(In/Out) per MTok |   Latency   |   Max Output   |   Vision   |   Batch API   |   Description
 #                                                            |             |                |            |               |
