@@ -26,23 +26,23 @@ WHITE = "\033[97m"
 RESET = "\033[0m"
 
 
-def get_completion(prompt: str):
+def get_completion(prompt: str, prefill=""):
     stream = client.messages.create(
         model=MODEL,
         max_tokens=1000,
         temperature=1,
         stream=True,
         system="You are a student with attention to detail.",  # Response context
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": prompt},
+                  {"role": "assistant", "content": prefill}],
     )
 
     print(f"{MAGENTA}{MODEL}: {RESET}", end="", flush=True)
 
+    input_tokens = 0
     for event in stream:
         if event.type == "message_start":
             input_tokens = event.message.usage.input_tokens
-            print(f"Input tokens used: {input_tokens}", flush=True)
-            print()
 
         elif event.type == "content_block_delta":
             content = event.delta.text
@@ -50,19 +50,23 @@ def get_completion(prompt: str):
 
         elif event.type == "message_delta":
             output_tokens = event.usage.output_tokens
-            print()
-            print(f"Output tokens used: {output_tokens}", flush=True)
+            print(f"\n\nTotal tokens used (input + output): {input_tokens} + {output_tokens}", flush=True)
 
-    print()  # New line after the for event in stream:
+    print()
 
 
 if __name__ == "__main__":
     USER_PROMPT = sys.argv[1]
+    PREFILL = "<fact_concept>"
 
-    PROMPT = f"""I will provide some text for you to find facts and concepts in.
-        List all that you can find without changing the original text:
+    PROMPT = f"""<source>{USER_PROMPT}</source>
+    List each fact and concept that you can find from the source material provided above in <fact_concept> tags without changing the original text.
+    Here is an example:
+    <example>
+    <fact_concept>Java allows a class definition to be nested inside the definition of another class.</fact_concept>
+    <fact_concept>The main use for nesting classes is when defining a class that is strongly affiliated with another class.</fact_concept>
+    <fact_concept>Nesting classes can help increase encapsulation and reduce undesired name conflicts.</fact_concept>
+    </example>
+    """
 
-        <text>{USER_PROMPT}</text>
-        """
-
-    get_completion(PROMPT)
+    get_completion(PROMPT, PREFILL)
