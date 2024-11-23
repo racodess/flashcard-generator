@@ -1,70 +1,33 @@
 import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { z } from "zod";
+
 const openai = new OpenAI();
+
+const GPT_O1_PREVIEW = "o1-preview";   // $15.00 / $60.00 (Input / Output) per 1M tokens
+const GPT_O1_MINI = "o1-mini";         // $3.00 / $12.00
+const GPT_4O = "gpt-4o";               // $2.50 / $10.00
+const GPT_4O_MINI = "gpt-4o-mini";     // $0.15 / $0.60
 
 // ANSI color codes
 const YELLOW = "\x1b[93m";
 const WHITE = "\x1b[97m";
 
-//                                               Pricing (Input / Output) per 1M tokens
-const GPT_O1_PREVIEW = "o1-preview";          // $15.00 / $60.00
-const GPT_O1_MINI = "o1-mini";                // $3.00 / $12.00
-const GPT_4O = "gpt-4o";                      // $2.50 / $10.00
-const GPT_4O_MINI = "gpt-4o-mini";            // $0.150 / $0.600
+// Anki "Name" field
+const NAME = "Java Primer";
 
-async function getConcept(prompt) {
-  const completion = await openai.chat.completions.create({
-    model: GPT_4O_MINI,
-    messages: [
-      { 
-        role: "system",
-        content: [
-          {
-            "type": "text",
-            "text": "You are a student with attention to detail.",
-          }
-        ]
-      },
-      { 
-        role: "user", 
-        content: [
-          {
-            "type": "text",
-            "text": prompt
-          }
-        ]
-      },
-    ],
-  });
-  const conceptResponse = completion.choices[0].message.content;
-  return conceptResponse;
-}
+const CardSchema = z.object({
+  cards: z.array(
+    z.object({
+      name: z.literal(NAME),
+      front: z.string(),
+      back: z.string(),
+    })
+  )
+});
 
-async function makeQuestion(prompt) {
-  const completion = await openai.chat.completions.create({
-    model: GPT_4O_MINI,
-    messages: [
-      { 
-        role: "system",
-        content: [
-          {
-            "type": "text",
-            "text": "You are a student with attention to detail.",
-          }
-        ]
-      },
-      { 
-        role: "user", 
-        content: [
-          {
-            "type": "text",
-            "text": prompt
-          }
-        ]
-      },
-    ],
-  });
-  const questionResponse = completion.choices[0].message.content;
-  return questionResponse;
+function cleanJSONResponse(response) {
+  return response.replace(/```json|```/g, '').trim();
 }
 
 (async () => {
@@ -75,43 +38,126 @@ async function makeQuestion(prompt) {
     <source>${userInput}</source>
     List each fact and concept that you can find from the source material provided above in <back> tags, and place all <back> items within a <cards> tag.
     <example_output>
-    <cards>
-      <back>Java allows a class definition to be nested inside the definition of another class.</back>
-      <back>The main use for nesting classes is when defining a class that is strongly affiliated with another class.</back>
-      <back>Nesting classes can help increase encapsulation and reduce undesired name conflicts.</back>
-      <back>Nesting classes are valuable when implementing data structures.</back>
-      <back>An instance of a nested class can represent a small portion of a larger data structure.</back>
-      <back>A nested class can serve as an auxiliary class that helps navigate a primary data structure.</back>
-    </cards>
+      <cards>
+        <back>Java allows a class definition to be nested inside the definition of another class.</back>
+        <back>The main use for nesting classes is when defining a class that is strongly affiliated with another class.</back>
+      </cards>
     </example_output>
   `;
 
-  const concept = await getConcept(backPrompt);
-  console.log(`\n${YELLOW}${MODEL}: ${WHITE}`);
-  console.log(`${concept}\n`);
+  const concept = await getCompletion(backPrompt);
 
   const frontPrompt = `
     <source>${concept}</source>
     Within <source> tags is your source material. For all items in <cards> pair each <back> with an intelligent question in <front> tags.
     <example_output>
-    <cards>
-      <front>What is the purpose of nesting classes in Java?</front>
-      <back>Java allows a class definition to be nested inside the definition of another class.</back>
-      <front>In what situation is it beneficial to nest a class inside another class?</front>
-      <back>The main use for nesting classes is when defining a class that is strongly affiliated with another class.</back>
-      <front>How do nesting classes enhance encapsulation in Java?</front>
-      <back>Nesting classes can help increase encapsulation and reduce undesired name conflicts.</back>
-      <front>What advantages do nesting classes provide when working with data structures?</front>
-      <back>Nesting classes are valuable when implementing data structures.</back>
-      <front>How does an instance of a nested class relate to larger data structures?</front>
-      <back>An instance of a nested class can represent a small portion of a larger data structure.</back>
-      <front>What role can a nested class play in relation to a primary data structure?</front>
-      <back>A nested class can serve as an auxiliary class that helps navigate a primary data structure.</back>
-    </cards>
+      <cards>
+        <front>What is the purpose of nesting classes in Java?</front>
+        <back>Java allows a class definition to be nested inside the definition of another class.</back>
+        <front>In what situation is it beneficial to nest a class inside another class?</front>
+        <back>The main use for nesting classes is when defining a class that is strongly affiliated with another class.</back>
+      </cards>
     </example_output>
   `;
 
-  const question = await makeQuestion(frontPrompt);
-  console.log(`\n${YELLOW}${MODEL}: ${WHITE}`);
-  console.log(`${question}\n`);
+  const frontAndBack = await getCompletion(frontPrompt);
+
+  const finalPrompt = `
+    Questions and concepts:
+    ${frontAndBack}
+
+    Reference the questions and concepts above to convert all of them from into a JSON object with a 'cards' array, each containing 'name', 'front', 'back'.
+
+    - 'name' will always be ${NAME} and never change.
+    - 'back' is the fact or concept.
+    - 'front' is an intelligent question created for the concept in the 'back'.
+
+    **Important:** Output only the JSON object. Do not include any code fences, markdown, or additional text.
+
+    Example Output:
+    {
+      "cards": [
+        {
+          "name": "Java Primer",
+          "front": "What is the purpose of nesting classes in Java?",
+          "back": "Java allows a class definition to be nested inside the definition of another class.",
+        },
+        // Additional cards...
+      ]
+    }
+  `;
+
+  const structuredResponse = await makeJSON(finalPrompt);
+  let stringifiedResponse = "";
+  try {
+    stringifiedResponse = JSON.stringify(structuredResponse, null, 2);
+    console.log(`\n${YELLOW}${MODEL}: ${WHITE}\n`, stringifiedResponse);
+  } catch (error) {
+    console.error("Failed to get structured response:", error.message);
+  }
 })();
+
+async function getCompletion(prompt) {
+  const completion = await openai.chat.completions.create({
+    model: GPT_4O_MINI,
+    messages: [
+      { 
+        role: "system",
+        content: [
+          {
+            "type": "text",
+            "text": "You are a student with attention to detail.",
+          }
+        ]
+      },
+      { 
+        role: "user", 
+        content: [
+          {
+            "type": "text",
+            "text": prompt
+          }
+        ]
+      },
+    ],
+  });
+  const response = completion.choices[0].message.content;
+  return response;
+}
+
+async function makeJSON(prompt) {
+  const completion = await openai.chat.completions.create({
+    model: GPT_4O_MINI,
+    messages: [
+      { 
+        role: "system",
+        content: [
+          {
+            "type": "text",
+            "text": "You are a student with attention to detail.",
+          }
+        ]
+      },
+      { 
+        role: "user", 
+        content: [
+          {
+            "type": "text",
+            "text": prompt
+          }
+        ]
+      },
+    ],
+  });
+
+  const structuredResponse = completion.choices[0].message.content;
+  const cleanedResponse = cleanJSONResponse(structuredResponse);
+
+  try {
+    const parsedResponse = CardSchema.parse(JSON.parse(cleanedResponse));
+    return parsedResponse;
+  } catch (error) {
+    console.error("Validation Error:", error);
+    throw new Error("Invalid response structure.");
+  }
+}
