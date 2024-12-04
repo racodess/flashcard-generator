@@ -1,15 +1,25 @@
+import os
 import sys
+import io
+import base64
 import json
+
+from pdf2image import convert_from_path
+from PIL import Image
+from rich import print_json
+from rich.text import Text
+from rich.pretty import Pretty
+from rich.console import Console
+from rich.markdown import Markdown
 from openai import OpenAI
+
 from prompts import (
     TEXT,
     FLASHCARD_SCHEMA,
     SYSTEM_MESSAGE,
-    CONCEPTS_PROMPT,
-    CHECK_PROMPT,
-    RESTATE_PROMPT,
-    BACK_PROMPT,
-    FRONT_PROMPT,
+    INITIAL_PROMPT_IMG,
+    INITIAL_PROMPT_TEXT,
+    FRONT_BACK_PROMPT,
     WORDINESS_PROMPT,
     FIND_EXAMPLES_PROMPT,
     ADD_EXAMPLES_PROMPT,
@@ -18,98 +28,177 @@ from prompts import (
 )
 
 # OpenAI Models
-GPT_O1_PREVIEW = "o1-preview"  # $15.00 / $60.00 (Input / Output) per 1M tokens
-GPT_O1_MINI = "o1-mini"        # $3.00 / $12.00
-GPT_4O = "gpt-4o"              # $2.50 / $10.00
-GPT_4O_MINI = "gpt-4o-mini"    # $0.15 / $0.60
+GPT_O1_PREVIEW = "o1-preview"
+GPT_O1_MINI = "o1-mini"
+GPT_4O = "gpt-4o"
+GPT_4O_MINI = "gpt-4o-mini"
 
 # Use this model
 MODEL = GPT_4O_MINI
 
-# Get command line arguments
-NAME_FIELD = sys.argv[1]
-USER_INPUT = sys.argv[2]
-
-# ANSI color codes for printing
-GREEN = "\x1b[92m"
-YELLOW = "\x1b[93m"
-WHITE = "\x1b[97m"
-MAGENTA = "\x1b[95m"
-
 # Initialize the OpenAI client
 client = OpenAI()
 
-# Initialize the message list with the system message
-message_list = [SYSTEM_MESSAGE]
+# Initialize Rich console for formatted output
+console = Console()
 
-def get_completion(model, prompt, response_format):
-    # Add user's prompt to conversation history
-    user_prompt = {"role": "user", "content": prompt}
-    message_list.append(user_prompt)
+
+def detect_file_type(file_path):
+    _, ext = os.path.splitext(file_path)
+    if ext.lower() == '.txt':
+        return 'text'
+    elif ext.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.pdf']:
+        return 'image'
+    else:
+        return 'unsupported'
+
+
+def process_file(file_path, file_type):
+    if file_type == 'text':
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        initial_prompt = INITIAL_PROMPT_TEXT.format(TEXT=content)
+        img_uri = None
+    elif file_type == 'image':
+        if file_path.lower().endswith('.pdf'):
+            images = convert_doc_to_images(file_path)
+            img_uri = get_img_uri(images[0])
+        else:
+            img = Image.open(file_path)
+            img_uri = get_img_uri(img)
+        initial_prompt = INITIAL_PROMPT_IMG
+    else:
+        console.print(
+            f"Unsupported file type: '{file_path}'.\n"
+            "Supported file types are '.txt', '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.pdf'",
+            style="red"
+        )
+        sys.exit(1)
+    return initial_prompt, img_uri
+
+
+def convert_doc_to_images(path):
+    return convert_from_path(path)
+
+
+def get_img_uri(img):
+    png_buffer = io.BytesIO()
+    img.save(png_buffer, format="PNG")
+    png_buffer.seek(0)
+    base64_png = base64.b64encode(png_buffer.read()).decode('utf-8')
+    return f"data:image/png;base64,{base64_png}"
+
+
+def analyze_image(img_uri, message_list):
+    messages = message_list.copy()
+    messages.append(
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image_url",
+                    "image_url": {"url": img_uri}
+                }
+            ]
+        }
+    )
+
+    try:
+        completion = client.chat.completions.create(
+            model=GPT_4O,
+            messages=messages,
+            max_tokens=1000,
+            temperature=0,
+            top_p=0.1
+        )
+        return completion
+    except Exception as e:
+        console.print(f"Error while analyzing image: {e}", style="red")
+        sys.exit(1)
+
+
+def get_completion(model, prompt, response_format, message_list):
 
     try:
         completion = client.chat.completions.create(
             model=model,
             messages=message_list,
             response_format=response_format,
-            temperature=0.4, # 0 (deterministic) – 1 (creative)
             max_tokens=16383,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
+            temperature=0,
+            top_p=0.1,
         )
-
-        # Print token usage
-        print(f"{MAGENTA}{completion.usage}")
-
-        assistant_response = completion.choices[0].message.content
-
-        # Add model's response to conversation history
-        assistant = {"role": "assistant", "content": assistant_response}
-        message_list.append(assistant)
-
-        return assistant_response
+        return completion
     except Exception as e:
-        print(f"An error occurred: {e}")
+        console.print(f"Error while generating response: {e}", style="red")
         sys.exit(1)
 
-def main():
-    # Format prompt with variable containing source material from cmd line arg
-    concepts_prompt = CONCEPTS_PROMPT.format(user_input=USER_INPUT)
 
-    # Append name field from cmd line arg to schema
-    FLASHCARD_SCHEMA['json_schema']['schema']['properties']['flashcards']['items']['properties']['name']['enum'].append(NAME_FIELD)
+def print_user_message(message, markdown):
+    if markdown:
+        md = Markdown(message)
+        console.rule("[bold green]User Prompt")
+        console.print(f"\n\n", md, "\n")
+    else:
+        console.print(f"\n\n{message}\n")
+
+def print_model_response(model, response, markdown):
+    if markdown is True:
+        md = Markdown(response)
+        console.rule(f"[bold yellow]{model} Response")
+        console.print(f"\n\n", md, "\n")
+    else:
+        console.rule(f"[bold yellow]{model} Response")
+        print_json(response)
+
+def print_token_usage(completion):
+    console.rule(f"[bold magenta]Token Usage")
+    console.print(f"\n", Pretty(completion.usage), "\n")
+
+def append_user_prompt(prompt_text, message_list):
+    message_list.append({"role": "user", "content": prompt_text})
+
+def append_model_response(response, message_list):
+    message_list.append({"role": "assistant", "content": response})
+
+
+def main():
+    if len(sys.argv) != 2:
+        console.print("Usage: python generator.py <file_path>", style="red")
+        sys.exit(1)
+
+    file_path = sys.argv[1]
+    file_type = detect_file_type(file_path)
+    initial_prompt, img_uri = process_file(file_path, file_type)
+
+    message_list = [SYSTEM_MESSAGE]
 
     prompts = [
-        ("Concepts Prompt", concepts_prompt, TEXT),
-        ("Check Prompt", CHECK_PROMPT, TEXT),
-        ("Restate Prompt", RESTATE_PROMPT, TEXT),
-        ("Back Prompt", BACK_PROMPT, FLASHCARD_SCHEMA),
-        ("Front Prompt", FRONT_PROMPT, FLASHCARD_SCHEMA),
+        ("Initial Prompt", initial_prompt, TEXT),
+        ("Front and Back Prompt", FRONT_BACK_PROMPT, FLASHCARD_SCHEMA),
         ("Wordiness Prompt", WORDINESS_PROMPT, FLASHCARD_SCHEMA),
-        ("Find New Examples Prompt", FIND_EXAMPLES_PROMPT, TEXT),
-        ("Add New Examples Prompt", ADD_EXAMPLES_PROMPT, FLASHCARD_SCHEMA),
-        ("Source Prompt", CITATIONS_PROMPT, FLASHCARD_SCHEMA),
-        ("Remove Old Examples Prompt", REMOVE_BAD_QUESTIONS_PROMPT, FLASHCARD_SCHEMA),
+        ("Find Examples Prompt", FIND_EXAMPLES_PROMPT, TEXT),
+        ("Add Examples Prompt", ADD_EXAMPLES_PROMPT, FLASHCARD_SCHEMA),
+        ("Citations Prompt", CITATIONS_PROMPT, FLASHCARD_SCHEMA),
+        ("Remove Bad Questions Prompt", REMOVE_BAD_QUESTIONS_PROMPT, FLASHCARD_SCHEMA),
     ]
 
     for title, prompt_text, response_format in prompts:
-        # Print user's prompt
-        print(f"\n{GREEN}User: \n{prompt_text}\n")
-
-        # Get model's response
-        response = get_completion(MODEL, prompt_text, response_format)
-
-        # Change model's response string to formatted JSON
+        print_user_message(prompt_text, markdown=True)
+        if title == "Initial Prompt" and initial_prompt == INITIAL_PROMPT_IMG:
+            completion = analyze_image(img_uri, message_list)
+            append_user_prompt("See assistant's presentation below:", message_list)
+        else:
+            append_user_prompt(prompt_text, message_list)
+            completion = get_completion(MODEL, prompt_text, response_format, message_list)
+        print_token_usage(completion)
+        response = completion.choices[0].message.content
+        append_model_response(response, message_list)
         if response_format == FLASHCARD_SCHEMA:
-            try:
-                response = json.dumps(json.loads(response), indent=4)
-            except json.JSONDecodeError as e:
-                print(f"JSON parsing error: {e}")
-                sys.exit(1)
+            print_model_response(MODEL, response, markdown=False)
+        else:
+            print_model_response(MODEL, response, markdown=True)
 
-        # Print model's response
-        print(f"\n{YELLOW}{MODEL}: {WHITE}\n{response}\n")
 
 if __name__ == "__main__":
     main()
