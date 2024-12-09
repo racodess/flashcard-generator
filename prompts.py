@@ -47,7 +47,7 @@ Before you response, ensure the markdown formatting is complete and accurate.
 
 
 BRAINSTORM_KNOWLEDGE_MAP_PROMPT = """
-You will be provided with source material text. Let's think step-by-step to brainstorm a knowledge map of the source material and integrate recommendations for flashcards throughout the knowledge map. Output in markdown text.
+You will be provided with source material text. Let's think step-by-step to brainstorm a knowledge map of the source material. Output in markdown text.
 
 Start by stating the title. If no title, sum up the content in less than four words. For example, "Java Base Types"; "Java This Keyword".
 
@@ -56,8 +56,6 @@ Brainstorm the Knowledge Map:
 - Extract all facts, key concepts, key words, supporting details, supporting concepts, comparative scenarios, code snippets, and practical examples.
 
 - Recursively them break down into individual elements.
-
-
 
 ------
 
