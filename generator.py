@@ -187,13 +187,15 @@ def main():
     file_type = detect_file_type(file_path)
     file_contents = process_file(file_path, file_type)
 
+    if file_type.lower() == "image":
+        initial_prompt = IMAGE_ANALYSIS_PROMPT
+    else:
+        initial_prompt = REWRITE_PROMPT
+
     prompts = [
-        (REWRITE_PROMPT, TEXT_FORMAT),
+        (initial_prompt, TEXT_FORMAT),
         (BRAINSTORM_KNOWLEDGE_MAP_PROMPT, TEXT_FORMAT),
     ]
-
-    if file_type.lower() == "image":
-        prompts.insert(0, (IMAGE_ANALYSIS_PROMPT, TEXT_FORMAT))
 
     response = None
     for system_message, response_format in prompts:
