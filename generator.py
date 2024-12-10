@@ -101,7 +101,7 @@ def get_completion(file_type, model, message_list, response_format):
 
 
 
-def handle_completion(file_type, system_message, response, file_contents, response_format):
+def handle_completion(file_type, system_message, response, file_contents, source_material, response_format):
     message_list = [{"role": "system", "content": system_message}]
 
     print_message("system", system_message, model=None, markdown=True)
@@ -121,12 +121,10 @@ def handle_completion(file_type, system_message, response, file_contents, respon
     elif system_message == REWRITE_PROMPT:
         model = GPT_4O_MINI
         append_message("user", file_contents, message_list)
-
         print_message("text", file_contents, model=None, markdown=False)
     else:
         model = GPT_4O_MINI
         append_message("user", response, message_list)
-
         print_message("user", response, model=None, markdown=True)
 
 
@@ -169,13 +167,20 @@ def print_message(role, content, model, markdown=False):
         print_json(content)
 
 
+def print_token_usage(completion):
+    print_message("token", completion.usage, model=None, markdown=False)
+
+
 def append_message(role, response, messages):
     message = {"role": role.lower(), "content": response}
     messages.append(message)
 
 
-def print_token_usage(completion):
-    print_message("token", completion.usage, model=None, markdown=False)
+def get_initial_prompt(file_type):
+    if file_type.lower() == "image":
+        return IMAGE_ANALYSIS_PROMPT
+    else:
+        return REWRITE_PROMPT
 
 
 def main():
@@ -187,20 +192,7 @@ def main():
     file_name = sys.argv[2]
     file_type = detect_file_type(file_path)
     file_contents = process_file(file_path, file_type)
-
-
-    if file_type.lower() == "image":
-        initial_prompt = IMAGE_ANALYSIS_PROMPT
-        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["image"]["enum"].append(file_name)
-        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["external_source"]["enum"].append("")
-    elif file_type.lower() == "pdf":
-        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["image"]["enum"].append("")
-        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["external_source"]["enum"].append(file_name)
-        initial_prompt = REWRITE_PROMPT
-    else:
-        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["image"]["enum"].append("")
-        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["external_source"]["enum"].append("")
-        initial_prompt = REWRITE_PROMPT
+    initial_prompt = get_initial_prompt(file_type)
 
     prompts = [
         (initial_prompt, TEXT_FORMAT),
@@ -210,8 +202,11 @@ def main():
     ]
 
     response = None
+    source_material = None
     for system_message, response_format in prompts:
-        response = handle_completion(file_type, system_message, response, file_contents, response_format)
+        response = handle_completion(file_type, system_message, response, file_contents, source_material, response_format)
+        if system_message == initial_prompt:
+            source_material = response
 
 
 if __name__ == "__main__":
