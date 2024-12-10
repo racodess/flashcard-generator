@@ -1,6 +1,5 @@
 TEXT_FORMAT = {"type": "text"}
 
-
 FLASHCARD_SCHEMA = {
     "type": "json_schema",
     "json_schema": {
@@ -14,13 +13,16 @@ FLASHCARD_SCHEMA = {
                     "type": "array",
                     "items": {
                         "type": "object",
-                        "required": ["name", "front", "back", "example", "source"],
+                        "required": ["name", "front", "back", "example", "source", "image", "external_source", "external_page"],
                         "properties": {
                             "name": {"type": "string"},
                             "front": {"type": "string"},
                             "back": {"type": "string"},
                             "example": {"type": "string"},
                             "source": {"type": "string"},
+                            "image": {"type": "string", "enum": []},
+                            "external_source": {"type": "string", "enum": []},
+                            "external_page": {"type": "integer", "enum": [1]},
                         },
                         "additionalProperties": False,
                     },
@@ -121,13 +123,17 @@ Ensure atomicity:
 
 Craft Clear and Specific Flashcards:
 
-- Brainstorm 2 distinct versions of each question-answer-example structure. For instance, different approaches to the same concept.
+- Brainstorm 2 distinct versions of each question-answer-example structure. For instance, different perspectives of the same concept.
 
 - Ensure questions are close-ended.
 
 - Add comparative scenarios or code snippets exclusively from the source material in markdown code block fencing.
 
-- **DO NOT** fabricate examples. If no matching example exists, use "".
+- **DO NOT** fabricate examples. If no matching example exists, use an empty string ("").
+
+Exhaust the Knowledge Map:
+
+- Ensure full coverage of every single entry of the knowledge map with flashcards has been achieved.
 
 Example Brainstorm Structure:
 
@@ -158,5 +164,11 @@ You will be provided with a text analysis of flashcards. Your goal is to reprodu
 
     - example: An example from the source material.
 
-    - source: The citation from the source material.
+    - source: an empty string ("") until instructed otherwise.
+    
+    - image: a pre-defined enum value
+    
+    - external_source: a pre-defined enum value
+    
+    - external_page: a pre-defined enum value
 """

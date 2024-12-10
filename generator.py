@@ -155,7 +155,7 @@ def print_message(role, content, model, markdown=False):
         "user": "[bold green]User Prompt (Source Material)",
         "assistant": f"[bold yellow]{model} Response",
         "token": "[bold magenta]Token Usage",
-        "text": "[bold red]Text Extracted From PDF"
+        "text": "[bold red]Text Extracted from File"
     }
     rule = role_styles.get(role.lower(), f"[bold]{role} Message")
     console.rule(rule)
@@ -179,22 +179,34 @@ def print_token_usage(completion):
 
 
 def main():
-    if len(sys.argv) != 2:
-        console.print("Usage: python generator.py <file_path>", style="red")
+    if len(sys.argv) != 3:
+        console.print("Usage: python generator.py <file_path> <file_name>", style="red")
         sys.exit(1)
 
     file_path = sys.argv[1]
+    file_name = sys.argv[2]
     file_type = detect_file_type(file_path)
     file_contents = process_file(file_path, file_type)
 
+
     if file_type.lower() == "image":
         initial_prompt = IMAGE_ANALYSIS_PROMPT
+        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["image"]["enum"].append(file_name)
+        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["external_source"]["enum"].append("")
+    elif file_type.lower() == "pdf":
+        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["image"]["enum"].append("")
+        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["external_source"]["enum"].append(file_name)
+        initial_prompt = REWRITE_PROMPT
     else:
+        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["image"]["enum"].append("")
+        FLASHCARD_SCHEMA["json_schema"]["schema"]["properties"]["flashcards"]["items"]["properties"]["external_source"]["enum"].append("")
         initial_prompt = REWRITE_PROMPT
 
     prompts = [
         (initial_prompt, TEXT_FORMAT),
         (BRAINSTORM_KNOWLEDGE_MAP_PROMPT, TEXT_FORMAT),
+        (BRAINSTORM_FLASHCARDS_PROMPT, TEXT_FORMAT),
+        (JSON_FLASHCARDS_PROMPT, FLASHCARD_SCHEMA)
     ]
 
     response = None
