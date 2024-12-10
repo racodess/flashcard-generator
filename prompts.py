@@ -1,5 +1,6 @@
 TEXT_FORMAT = {"type": "text"}
 
+
 FLASHCARD_SCHEMA = {
     "type": "json_schema",
     "json_schema": {
@@ -18,10 +19,10 @@ FLASHCARD_SCHEMA = {
                             "name": {"type": "string"},
                             "front": {"type": "string"},
                             "back": {"type": "string"},
-                            "example": {"type": "string"},
-                            "source": {"type": "string"},
-                            "image": {"type": "string", "enum": []},
-                            "external_source": {"type": "string", "enum": []},
+                            "example": {"type": "string", "enum": [""]},
+                            "source": {"type": "string", "enum": [""]},
+                            "image": {"type": "string", "enum": [""]},
+                            "external_source": {"type": "string", "enum": [""]},
                             "external_page": {"type": "integer", "enum": [1]},
                         },
                         "additionalProperties": False,
@@ -162,13 +163,13 @@ You will be provided with a text analysis of flashcards. Your goal is to reprodu
 
     - back: The answer.
 
-    - example: An example from the source material.
+    - example: a pre-defined enum value.
 
-    - source: an empty string ("") until instructed otherwise.
+    - source: a pre-defined enum value.
     
-    - image: a pre-defined enum value
+    - image: a pre-defined enum value.
     
-    - external_source: a pre-defined enum value
+    - external_source: a pre-defined enum value.
     
-    - external_page: a pre-defined enum value
+    - external_page: a pre-defined enum value.
 """
