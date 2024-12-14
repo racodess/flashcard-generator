@@ -1,40 +1,6 @@
 TEXT_FORMAT = {"type": "text"}
 
 
-FLASHCARD_SCHEMA = {
-    "type": "json_schema",
-    "json_schema": {
-        "name": "flashcards",
-        "strict": True,
-        "schema": {
-            "type": "object",
-            "required": ["flashcards"],
-            "properties": {
-                "flashcards": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "required": ["name", "front", "back", "example", "source", "image", "external_source", "external_page"],
-                        "properties": {
-                            "name": {"type": "string"},
-                            "front": {"type": "string"},
-                            "back": {"type": "string"},
-                            "example": {"type": "string", "enum": [""]},
-                            "source": {"type": "string", "enum": [""]},
-                            "image": {"type": "string", "enum": [""]},
-                            "external_source": {"type": "string", "enum": [""]},
-                            "external_page": {"type": "integer", "enum": [1]},
-                        },
-                        "additionalProperties": False,
-                    },
-                }
-            },
-            "additionalProperties": False,
-        },
-    },
-}
-
-
 PLACEHOLDER_MESSAGE = "See below for assistant's analysis of the image:"
 
 
@@ -49,16 +15,91 @@ Before you response, ensure the markdown formatting is complete and accurate.
 """
 
 
-BRAINSTORM_KNOWLEDGE_MAP_PROMPT = """
-You will be provided with source material text. Let's think step-by-step to brainstorm a knowledge map of the source material. Output in markdown text.
+CONCEPTS_PROMPT = """
+You will be provided source material text. Your goal is to exclusively extract all desirable items per my definition below:
 
-Start by stating the title. If no title, sum up the content in less than four words. For example, "Java Base Types"; "Java This Keyword".
+Desirable Concept Items:
+- Facts.
+- Key concepts.
+- Key words.
+- Supporting details.
+- Supporting concepts.
 
-Brainstorm the Knowledge Map:
+Undesirable Example Items:
+- Examples.
+- Comparative scenarios.
+- Code snippets.
+- Practical examples.
+    
+**DO NOT** Cross Contaminate Lists:
+- Ensure concept items exist exclusively in the concepts list. **DO NOT** include undesirable example items.
 
-- Extract all facts, key concepts, key words, supporting details, supporting concepts, comparative scenarios, code snippets, and practical examples.
+Ensure Individual Self-Contained Items:
+- Recursively break items down into self-contained parts.
 
-- Recursively them break down into individual elements.
+Ensure Items In Markdown:
+- Format each item in markdown.
+"""
+
+
+ABSENT_PROMPT = """
+Source Material:
+{SOURCE_MATERIAL}
+
+
+Prompt:
+You will be provided a list of concepts from the source material above. Your goal is to thoroughly search the source material for any desirable items that are absent in the provided list, and output a new list with everything included:
+
+Desirable Concept Items:
+- Facts.
+- Key concepts.
+- Key words.
+- Supporting details.
+- Supporting concepts.
+
+Undesirable Example Items:
+- Examples.
+- Comparative scenarios.
+- Code snippets.
+- Practical examples.
+    
+Absent Items:
+- Must exist in the source material, but are absent from the provided list.
+
+Before you respond, ensure the new list you output includes all previous list items, and the absent items you discovered, with the items in markdown format.
+"""
+
+
+CONCEPT_MAP_PROMPT = """
+You will be provided with source material text. Let's think step-by-step to deliver a detailed and engaging concept map of the source material. Output in markdown text.
+
+Start by stating the title. If no title, sum up the content in less than four words without indefinite articles like "The". For example, "Java: Base Types"; "Java: This Keyword".
+
+Describe elements in detail:
+
+- Extract exact citations of all facts, key concepts, key words, supporting details, supporting concepts, comparative scenarios, code snippets, and practical examples.
+
+- Recursively break elements down into self-contained components.
+
+- Explain each component and how they interact. For example, "The process begins with X, which then leads to Y and results in Z."
+
+- Break down the information logically. For instance, "Product A costs X dollars, while Product B is priced at Y dollars."
+
+Focus on the content itself rather than the format:
+
+- **DO NOT** include terms referring to the content format.
+
+- **DO NOT** mention the content type. Instead, directly discuss the information presented.
+
+- **DO NOT** include irrelevant details such as page numbers, metadata, or meta-information.
+
+Keep your explanations comprehensive:
+
+- Be exhaustive in describing the content, as your audience cannot see the original source material.
+
+Engage with the content:
+
+- Interpret and analyze the information where appropriate, offering insights to help the audience understand its significance.
 
 ------
 
@@ -115,61 +156,30 @@ Output format:
 """
 
 
-BRAINSTORM_FLASHCARDS_PROMPT = """
-You will be provided with a knowledge map. Let's think step-by-step to brainstorm how to populate the front, back, and example fields of your flashcards. Output in markdown text.
+CHAIN_OF_THOUGHT = """
+Think step by step to formulate content for the required field:
 
-Ensure atomicity:
+- The question must contain a contextual hook that from the concept item, and is placed in the front field.
 
-- Ensure one unit of knowledge per card.
+- The answer must be a short and direct answer to the question, and is placed in the back field.
 
-Craft Clear and Specific Flashcards:
+- The example must relate to the question/answer, must exist in the concept map, and is placed in the example field.
 
-- Brainstorm 2 distinct versions of each question-answer-example structure. For instance, different perspectives of the same concept.
+- The concept item must be reproduced verbatim in the citation field.
 
-- Ensure questions are close-ended.
-
-- Add comparative scenarios or code snippets exclusively from the source material in markdown code block fencing.
-
-- **DO NOT** fabricate examples. If no matching example exists, use an empty string ("").
-
-Exhaust the Knowledge Map:
-
-- Ensure full coverage of every single entry of the knowledge map with flashcards has been achieved.
-
-Example Brainstorm Structure:
-
-- Flashcard {num}:
-    - Version 1:
-        - Front: ...
-        - Back: ...
-        - Example: ...
-        
-    - Version 2:
-        - Front: ...
-        - Back: ...
-        - Example: ... 
-
+- Ensure there is no redundancy of wording in the question and answer.
 """
 
 
-JSON_FLASHCARDS_PROMPT = """
-You will be provided with a text analysis of flashcards. Your goal is to reproduce those flashcards in JSON format using a schema.
+FLASHCARD_PROMPT = """
+Concept Map:
+{concept_map}
 
-- Description of the flashcard JSON schema parameters:
+You will be provided with a concept map, and a list of concept items. Your goal is to:
 
-    - name: A concise title.
+- Formulate a question and answer for each concept item in the list.
 
-    - front: A question.
+- Reproduce a relevant example that exists in the concept map. If no relevant example exists, use the empty string ("").
 
-    - back: The answer.
-
-    - example: a pre-defined enum value.
-
-    - source: a pre-defined enum value.
-    
-    - image: a pre-defined enum value.
-    
-    - external_source: a pre-defined enum value.
-    
-    - external_page: a pre-defined enum value.
+Before you respond, ensure there exists a flashcard for each and every concept item in the concepts list.
 """
