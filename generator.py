@@ -4,6 +4,7 @@ import re
 import sys
 import json
 import base64
+import argparse
 
 from pdfminer.high_level import extract_text
 from PIL import Image
@@ -13,6 +14,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from typing import List, Literal, Optional
 from pydantic import BaseModel, Field, ValidationError
+from importer import add_flashcards_to_anki
 from openai import OpenAI
 
 from prompts import (
@@ -23,7 +25,6 @@ from prompts import (
     IMAGE_ANALYSIS_PROMPT,
     CONCEPTS_PROMPT,
     ABSENT_PROMPT,
-    CHAIN_OF_THOUGHT,
     FLASHCARD_PROMPT,
 )
 
@@ -48,29 +49,32 @@ class Concepts(BaseModel):
 
 
 class Front(BaseModel):
-    chain_of_thought: str = Field(
-        description=CHAIN_OF_THOUGHT
-    )
     front: str = Field(
         description="A question formatted in markdown.",
     )
 
+
 class Back(BaseModel):
-    chain_of_thought: str = Field(
-        description=CHAIN_OF_THOUGHT
-    )
     back: str = Field(
         description="An answer formatted in markdown.",
     )
+
 
 class Example(BaseModel):
     example: str = Field(
         description="An example that exists in the source material, reproduced verbatim, formatted in markdown."
     )
 
+
 class Citation(BaseModel):
     citation: str = Field(
         description="The exact citation from the concepts list, formatted in markdown."
+    )
+
+
+class Tags(BaseModel):
+    tags: List[str] = Field(
+        description="All Anki tags chosen for this flashcard formatted in a list of strings."
     )
 
 
@@ -84,6 +88,7 @@ class FlashcardItem(BaseModel):
     image: Literal[""]
     external_source: Literal[""]
     external_page: Literal[1]
+    tags: Tags
 
 
 class Flashcards(BaseModel):
@@ -206,7 +211,7 @@ def handle_completion(system_message, user_message, response_format, file_type=N
     return response
 
 
-def print_message(role, content, model, markdown=False):
+def print_message(role, content, model, markdown):
     role_styles = {
         "system": "[bold cyan]System Message",
         "user": "[bold green]User Message",
@@ -220,19 +225,24 @@ def print_message(role, content, model, markdown=False):
     rule = role_styles.get(role.lower(), f"[bold]{role} Message")
     console.rule(rule)
 
+    if markdown and isinstance(content, str):
+        console.print("\n", Markdown(content), "\n")
+        return
+
     if role.lower() == "token":
         print("\n")
         pprint(content, expand_all=True)
         print("\n")
         return
 
-    if role.lower() == "assistant_list":
-        text_content = Concepts.model_validate_json(content)
+    if role.lower() == "assistant":
+        text_content = Flashcards.model_validate_json(content)
         pprint(text_content)
         return
 
-    if markdown and isinstance(content, str):
-        console.print("\n", Markdown(content), "\n")
+    if role.lower() == "assistant_list":
+        text_content = Concepts.model_validate_json(content)
+        pprint(text_content)
         return
 
     console.print("\n", content, "\n")
@@ -295,15 +305,29 @@ def get_initial_prompt(file_type):
 
 
 def main():
-    if len(sys.argv) != 3:
-        console.print("Usage: python generator.py <file_path> <file_name>", style="red")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Generate Anki flashcards based on input files and Anki tags.")
 
-    file_path = sys.argv[1]
-    file_name = sys.argv[2]
+    # Positional arguments
+    parser.add_argument('file_path', type=str, help='Path to the file to process.')
+    parser.add_argument('file_name', type=str, help='Name of the file to process.')
+
+    # Variable number of tags
+    parser.add_argument('tags', nargs='*', help='Anki tags for the flashcards.')
+
+    args = parser.parse_args()
+
+    # Accessing the arguments
+    file_path = args.file_path
+    file_name = args.file_name
+    tags = args.tags
     file_type = detect_file_type(file_path)
     file_contents = process_file(file_path, file_type)
     initial_prompt = get_initial_prompt(file_type)
+
+    # Example usage
+    print(f"\nProcessing path: {file_path}")
+    print(f"\nProcessing file: {file_name}")
+    print(f"\nTags: \n{tags}")
 
     rewritten_text = handle_completion(initial_prompt, None, TEXT_FORMAT, file_type, file_contents)
 
@@ -318,7 +342,7 @@ def main():
     formatted_concepts_list = parse_llm_response(final_concepts_list_response)
     pprint(formatted_concepts_list)
 
-    flashcard_prompt = FLASHCARD_PROMPT.format(concept_map=concept_map_response)
+    flashcard_prompt = FLASHCARD_PROMPT.format(concept_map=concept_map_response, tags=tags)
     flashcards_response = handle_completion(flashcard_prompt, final_concepts_list_response, Flashcards, file_type, file_contents)
 
     try:
@@ -334,13 +358,15 @@ def main():
         flashcard_item.external_source = file_name
         flashcard_item.image = file_name if file_type == "image" else ""
 
-        # Flatten the fields:
         flashcard_item.front = flashcard_item.front.front
         flashcard_item.back = flashcard_item.back.back
         flashcard_item.example = flashcard_item.example.example
         flashcard_item.citation = flashcard_item.citation.citation
+        flashcard_item.tags = flashcard_item.tags.tags
 
     print_message("flashcards", flashcards, model=None, markdown=False)
+
+    add_flashcards_to_anki(flashcards.flashcards, deck_name="TestAnkiConnect")
 
 
 if __name__ == "__main__":

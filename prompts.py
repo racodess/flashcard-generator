@@ -156,30 +156,20 @@ Output format:
 """
 
 
-CHAIN_OF_THOUGHT = """
-Think step by step to formulate content for the required field:
-
-- The question must contain a contextual hook that from the concept item, and is placed in the front field.
-
-- The answer must be a short and direct answer to the question, and is placed in the back field.
-
-- The example must relate to the question/answer, must exist in the concept map, and is placed in the example field.
-
-- The concept item must be reproduced verbatim in the citation field.
-
-- Ensure there is no redundancy of wording in the question and answer.
-"""
-
-
 FLASHCARD_PROMPT = """
+Tags List:
+{tags}
+
 Concept Map:
 {concept_map}
 
-You will be provided with a concept map, and a list of concept items. Your goal is to:
+You will be provided with a list of Anki tags, a concept map, and a list of concept items. Your goal is to:
 
 - Formulate a question and answer for each concept item in the list.
 
 - Reproduce a relevant example that exists in the concept map. If no relevant example exists, use the empty string ("").
+
+- Choose **ALL** broad and specific **RELEVANT** tags that apply to the content of the question and answer for this flashcard.
 
 Before you respond, ensure there exists a flashcard for each and every concept item in the concepts list.
 """
