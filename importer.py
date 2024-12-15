@@ -5,8 +5,10 @@ from rich.pretty import pprint
 
 console = Console()
 
+
 def request(action, **params):
     return {'action': action, 'params': params, 'version': 6}
+
 
 def invoke(action, **params):
     request_json = json.dumps(request(action, **params)).encode('utf-8')
@@ -23,10 +25,9 @@ def invoke(action, **params):
         raise Exception(response['error'])
     return response['result']
 
+
 def ensure_model_exists():
     model_name = "AnkiConnect: Test"
-
-    # Check if model already exists
     existing_models = invoke("modelNames")
     if model_name in existing_models:
         console.log(f"Model '{model_name}' already exists.")
@@ -34,19 +35,18 @@ def ensure_model_exists():
 
     console.log(f"Model '{model_name}' not found. Creating it...")
 
-    # Define the fields in order
     fields = [
         "Name",
         "Front",
         "Back",
         "Example",
+        "Citation",
+        "Source",
         "Image",
         "external_source",
         "external_page"
     ]
 
-    # Define the templates
-    # From the snippet: qfmt is the "Front" template and afmt is the "Back" template for createModel
     front_template = """<link rel="stylesheet" type="text/css" href="_prism.css">
 <script src="_prism.js"></script>
 
@@ -68,7 +68,6 @@ def ensure_model_exists():
 {{#Example}}
 <br>
 <br>
-{{Example}}
 <div class='container'><div>{{Example}}</div></div>
 {{/Example}}
 
@@ -99,7 +98,6 @@ function send_pdf_info_back(){
         "Back": back_template
     }]
 
-    # CSS from snippet
     css = """.card {
     font-family: arial;
     font-size: 16px;
@@ -162,13 +160,37 @@ code {
 }
 """
 
-    # Invoke createModel
     invoke("createModel", modelName=model_name, inOrderFields=fields, cardTemplates=card_templates, css=css)
-
     console.log(f"Model '{model_name}' created successfully.")
 
 
-# Example usage:
-if __name__ == "__main__":
+def add_flashcards_to_anki(flashcards, deck_name="Default"):
     ensure_model_exists()
-    # After ensuring the model, you'd proceed to add your cards using similar invoke calls.
+
+    notes = []
+    for fc in flashcards:
+        fields = {
+            "Name": fc.name,
+            "Front": fc.front,
+            "Back": fc.back,
+            "Example": fc.example,
+            "Citation": fc.citation,
+            "Source": fc.source,
+            "Image": fc.image,
+            "external_source": fc.external_source,
+            "external_page": str(fc.external_page),
+        }
+
+        note = {
+            "deckName": deck_name,
+            "modelName": "AnkiConnect: Test",
+            "fields": fields,
+            "options": {
+                "allowDuplicate": True
+            },
+            "tags": fc.tags
+        }
+        notes.append(note)
+
+    result = invoke("addNotes", notes=notes)
+    console.log("Notes added with IDs:", result)
