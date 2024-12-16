@@ -8,17 +8,6 @@ from rich.pretty import pprint
 console = Console()
 
 
-def suppress_warnings(warning_class):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", warning_class)
-                return func(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
 def request(action, **params):
     return {'action': action, 'params': params, 'version': 6}
 
@@ -39,7 +28,6 @@ def invoke(action, **params):
     return response['result']
 
 
-@suppress_warnings(SyntaxWarning)
 def ensure_model_exists():
     model_name = "AnkiConnect: Test"
     existing_models = invoke("modelNames")
@@ -61,87 +49,91 @@ def ensure_model_exists():
         "external_page"
     ]
 
-    front_template = """<script>
-    var getResources = [
-        getCSS("_katex.css", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css"),
-        getCSS("_highlight.css", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/styles/default.min.css"),
-        getScript("_highlight.js", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/highlight.min.js"),
-        getScript("_katex.min.js", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"),
-        getScript("_auto-render.js", "https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/auto-render-cdn.js"),
-        getScript("_markdown-it.min.js", "https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.0.4/markdown-it.min.js"),
-        getScript("_markdown-it-mark.js","https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/_markdown-it-mark.js")
-    ];
+    front_template = r"""{{#Name}}<div id="name"><pre><strong><u>{{Name}}</strong></u><br><br></pre></div>{{/Name}}
+
+<div id="front"><pre>{{Front}}</pre></div>
+
+<script>
+	var getResources = [
+		getCSS("_katex.css", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css"),
+		getCSS("_highlight.css", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/styles/default.min.css"),
+		getScript("_highlight.js", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/highlight.min.js"),
+		getScript("_katex.min.js", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"),
+		getScript("_auto-render.js", "https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/auto-render-cdn.js"),
+		getScript("_markdown-it.min.js", "https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.0.4/markdown-it.min.js"),
+		getScript("_markdown-it-mark.js","https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/_markdown-it-mark.js")
+	];
         Promise.all(getResources).then(() => getScript("_mhchem.js", "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/mhchem.min.js")).then(render).catch(show);
-    
+	
 
-    function getScript(path, altURL) {
-        return new Promise((resolve, reject) => {
-            let script = document.createElement("script");
-            script.onload = resolve;
-            script.onerror = function() {
-                let script_online = document.createElement("script");
-                script_online.onload = resolve;
-                script_online.onerror = reject;
-                script_online.src = altURL;
-                document.head.appendChild(script_online);
-            }
-            script.src = path;
-            document.head.appendChild(script);
-        })
-    }
+	function getScript(path, altURL) {
+		return new Promise((resolve, reject) => {
+			let script = document.createElement("script");
+			script.onload = resolve;
+			script.onerror = function() {
+				let script_online = document.createElement("script");
+				script_online.onload = resolve;
+				script_online.onerror = reject;
+				script_online.src = altURL;
+				document.head.appendChild(script_online);
+			}
+			script.src = path;
+			document.head.appendChild(script);
+		})
+	}
 
-    function getCSS(path, altURL) {
-        return new Promise((resolve, reject) => {
-            var css = document.createElement('link');
-            css.setAttribute('rel', 'stylesheet');
-            css.type = 'text/css';
-            css.onload = resolve;
-            css.onerror = function() {
-                var css_online = document.createElement('link');
-                css_online.setAttribute('rel', 'stylesheet');
-                css_online.type = 'text/css';
-                css_online.onload = resolve;
-                css_online.onerror = reject;
-                css_online.href = altURL;
-                document.head.appendChild(css_online);
-            }
-            css.href = path;
-            document.head.appendChild(css);
-        });
-    }
+	function getCSS(path, altURL) {
+		return new Promise((resolve, reject) => {
+			var css = document.createElement('link');
+			css.setAttribute('rel', 'stylesheet');
+			css.type = 'text/css';
+			css.onload = resolve;
+			css.onerror = function() {
+				var css_online = document.createElement('link');
+				css_online.setAttribute('rel', 'stylesheet');
+				css_online.type = 'text/css';
+				css_online.onload = resolve;
+				css_online.onerror = reject;
+				css_online.href = altURL;
+				document.head.appendChild(css_online);
+			}
+			css.href = path;
+			document.head.appendChild(css);
+		});
+	}
 
-    function render() {
-        renderMath("name");
-        markdown("name");
-        renderMath("front");
-        markdown("front");
-        show();
-    }
+	function render() {
+		renderMath("name");
+		markdown("name");
+		renderMath("front");
+		markdown("front");
+		show();
+	}
 
-    function show() {
-        document.getElementById("name").style.visibility = "visible";
-        document.getElementById("front").style.visibility = "visible";
-        document.getElementById("back").style.visibility = "visible";
-        document.getElementById("example").style.visibility = "visible";
-        document.getElementById("source").style.visibility = "visible";
-        document.getElementById("external_source").style.visibility = "visible";
-    }
+	function show() {
+		document.getElementById("name").style.visibility = "visible";
+		document.getElementById("front").style.visibility = "visible";
+		document.getElementById("back").style.visibility = "visible";
+		document.getElementById("example").style.visibility = "visible";
+		document.getElementById("source").style.visibility = "visible";
+		document.getElementById("external_source").style.visibility = "visible";
+	}
 
 
-    function renderMath(ID) {
-        let text = document.getElementById(ID).innerHTML;
-        text = replaceInString(text);
-        document.getElementById(ID).textContent = text;
-        renderMathInElement(document.getElementById(ID), {
-            delimiters:  [
-                {left: "$$", right: "$$", display: true},
-                {left: "$", right: "$", display: false}
-            ],
+	function renderMath(ID) {
+		let text = document.getElementById(ID).innerHTML;
+		text = replaceInString(text);
+		document.getElementById(ID).textContent = text;
+		renderMathInElement(document.getElementById(ID), {
+			delimiters:  [
+  				{left: "$$", right: "$$", display: true},
+  				{left: "$", right: "$", display: false}
+			],
                         throwOnError : false
-        });
-    }
-    function markdown(ID) {
-        let md = new markdownit({typographer: true, html:true, highlight: function (str, lang) {
+		});
+	}
+	function markdown(ID) {
+		let md = new markdownit({typographer: true, html:true, highlight: function (str, lang) {
                             if (lang && hljs.getLanguage(lang)) {
                                 try {
                                     return hljs.highlight(str, { language: lang }).value;
@@ -150,30 +142,30 @@ def ensure_model_exists():
 
                             return ''; // use external default escaping
                         }}).use(markdownItMark);
-        let text = replaceHTMLElementsInString(document.getElementById(ID).innerHTML);
-        text = md.render(text);
-        document.getElementById(ID).innerHTML = text.replace(/&lt;\/span&gt;/gi,"\\");
-    }
-    function replaceInString(str) {
-        str = str.replace(/<[\/]?pre[^>]*>/gi, "");
-        str = str.replace(/<br\s*[\/]?[^>]*>/gi, "\n");
-        str = str.replace(/<div[^>]*>/gi, "\n");
-        // Thanks Graham A!
-        str = str.replace(/<[\/]?span[^>]*>/gi, "")
-        str.replace(/<\/div[^>]*>/g, "\n");
-        return replaceHTMLElementsInString(str);
-    }
+		let text = replaceHTMLElementsInString(document.getElementById(ID).innerHTML);
+		text = md.render(text);
+		document.getElementById(ID).innerHTML = text.replace(/&lt;\/span&gt;/gi,"\\");
+	}
+	function replaceInString(str) {
+		str = str.replace(/<[\/]?pre[^>]*>/gi, "");
+		str = str.replace(/<br\s*[\/]?[^>]*>/gi, "\n");
+		str = str.replace(/<div[^>]*>/gi, "\n");
+		// Thanks Graham A!
+		str = str.replace(/<[\/]?span[^>]*>/gi, "")
+		str.replace(/<\/div[^>]*>/g, "\n");
+		return replaceHTMLElementsInString(str);
+	}
 
-    function replaceHTMLElementsInString(str) {
-        str = str.replace(/&nbsp;/gi, " ");
-        str = str.replace(/&tab;/gi, "	");
-        str = str.replace(/&gt;/gi, ">");
-        str = str.replace(/&lt;/gi, "<");
-        return str.replace(/&amp;/gi, "&");
-    }
+	function replaceHTMLElementsInString(str) {
+		str = str.replace(/&nbsp;/gi, " ");
+		str = str.replace(/&tab;/gi, "	");
+		str = str.replace(/&gt;/gi, ">");
+		str = str.replace(/&lt;/gi, "<");
+		return str.replace(/&amp;/gi, "&");
+	}
 </script>
 """
-    back_template = """{{FrontSide}}
+    back_template = r"""{{FrontSide}}
 
 <hr id=answer>
 
