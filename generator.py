@@ -225,8 +225,12 @@ def print_message(role, content, model, markdown):
     rule = role_styles.get(role.lower(), f"[bold]{role} Message")
     console.rule(rule)
 
+    # if markdown and isinstance(content, str):
+    #     console.print("\n", Markdown(content), "\n")
+    #     return
+
     if markdown and isinstance(content, str):
-        console.print("\n", Markdown(content), "\n")
+        console.print("\n", content, "\n")
         return
 
     if role.lower() == "token":
