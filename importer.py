@@ -47,39 +47,130 @@ def ensure_model_exists():
         "external_page"
     ]
 
-    front_template = """<link rel="stylesheet" type="text/css" href="_prism.css">
-<script src="_prism.js"></script>
+    front_template = """<script>
+	var getResources = [
+		getCSS("_katex.css", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css"),
+		getCSS("_highlight.css", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/styles/default.min.css"),
+		getScript("_highlight.js", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/highlight.min.js"),
+		getScript("_katex.min.js", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"),
+		getScript("_auto-render.js", "https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/auto-render-cdn.js"),
+		getScript("_markdown-it.min.js", "https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.0.4/markdown-it.min.js"),
+		getScript("_markdown-it-mark.js","https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/_markdown-it-mark.js")
+	];
+        Promise.all(getResources).then(() => getScript("_mhchem.js", "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/mhchem.min.js")).then(render).catch(show);
+	
 
-<u><strong>{{Name}}</strong></u>
-<br>
-<br>
-<div class='container'><div>{{Front}}</div></div>
+	function getScript(path, altURL) {
+		return new Promise((resolve, reject) => {
+			let script = document.createElement("script");
+			script.onload = resolve;
+			script.onerror = function() {
+				let script_online = document.createElement("script");
+				script_online.onload = resolve;
+				script_online.onerror = reject;
+				script_online.src = altURL;
+				document.head.appendChild(script_online);
+			}
+			script.src = path;
+			document.head.appendChild(script);
+		})
+	}
+
+	function getCSS(path, altURL) {
+		return new Promise((resolve, reject) => {
+			var css = document.createElement('link');
+			css.setAttribute('rel', 'stylesheet');
+			css.type = 'text/css';
+			css.onload = resolve;
+			css.onerror = function() {
+				var css_online = document.createElement('link');
+				css_online.setAttribute('rel', 'stylesheet');
+				css_online.type = 'text/css';
+				css_online.onload = resolve;
+				css_online.onerror = reject;
+				css_online.href = altURL;
+				document.head.appendChild(css_online);
+			}
+			css.href = path;
+			document.head.appendChild(css);
+		});
+	}
+
+	function render() {
+		renderMath("name");
+		markdown("name");
+		renderMath("front");
+		markdown("front");
+		show();
+	}
+
+	function show() {
+		document.getElementById("name").style.visibility = "visible";
+		document.getElementById("front").style.visibility = "visible";
+		document.getElementById("back").style.visibility = "visible";
+		document.getElementById("example").style.visibility = "visible";
+		document.getElementById("source").style.visibility = "visible";
+		document.getElementById("external_source").style.visibility = "visible";
+	}
+
+
+	function renderMath(ID) {
+		let text = document.getElementById(ID).innerHTML;
+		text = replaceInString(text);
+		document.getElementById(ID).textContent = text;
+		renderMathInElement(document.getElementById(ID), {
+			delimiters:  [
+  				{left: "$$", right: "$$", display: true},
+  				{left: "$", right: "$", display: false}
+			],
+                        throwOnError : false
+		});
+	}
+	function markdown(ID) {
+		let md = new markdownit({typographer: true, html:true, highlight: function (str, lang) {
+                            if (lang && hljs.getLanguage(lang)) {
+                                try {
+                                    return hljs.highlight(str, { language: lang }).value;
+                                } catch (__) {}
+                            }
+
+                            return ''; // use external default escaping
+                        }}).use(markdownItMark);
+		let text = replaceHTMLElementsInString(document.getElementById(ID).innerHTML);
+		text = md.render(text);
+		document.getElementById(ID).innerHTML = text.replace(/&lt;\/span&gt;/gi,"\\");
+	}
+	function replaceInString(str) {
+		str = str.replace(/<[\/]?pre[^>]*>/gi, "");
+		str = str.replace(/<br\s*[\/]?[^>]*>/gi, "\n");
+		str = str.replace(/<div[^>]*>/gi, "\n");
+		// Thanks Graham A!
+		str = str.replace(/<[\/]?span[^>]*>/gi, "")
+		str.replace(/<\/div[^>]*>/g, "\n");
+		return replaceHTMLElementsInString(str);
+	}
+
+	function replaceHTMLElementsInString(str) {
+		str = str.replace(/&nbsp;/gi, " ");
+		str = str.replace(/&tab;/gi, "	");
+		str = str.replace(/&gt;/gi, ">");
+		str = str.replace(/&lt;/gi, "<");
+		return str.replace(/&amp;/gi, "&");
+	}
+</script>
 """
     back_template = """{{FrontSide}}
 
 <hr id=answer>
 
-<br>
-<div class='container'><div>{{Back}}</div></div>
+<div id="back"><pre>{{Back}}</pre></div>
 
-<br>
-<br>
+{{#Example}}<br><br><div id="example"><pre>{{Example}}</pre></div>{{/Example}}
 
-{{#Example}}
-<br>
-<br>
-<div class='container'><div>{{Example}}</div></div>
-{{/Example}}
-
-{{#Image}}
-<br>
-<br>
-<img src="{{Image}}" />
-{{/Image}}
+{{#Image}}<br><br><div id="image"><pre><img src="{{Image}}" /></pre></div>{{/Image}}
 
 {{#external_source}}
-<br>
-<br>
+<br><br>
 <a class="pdfjsaddon_twofields" onclick="send_pdf_info_back(); return false" href="#">Source: {{text:external_source}}</a>
 <script src="_js_base64_minified_for_pdf_viewer_addon.js"></script>
 <script>
@@ -90,6 +181,126 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#Source}}<br><br><div id="source" style='text-align: left'><pre>{{Source}}</pre></div>{{/Source}}
+
+<script>
+	var getResources = [
+		getCSS("_katex.css", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css"),
+		getCSS("_highlight.css", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/styles/default.min.css"),
+		getScript("_highlight.js", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/highlight.min.js"),
+		getScript("_katex.min.js", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"),
+		getScript("_auto-render.js", "https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/auto-render-cdn.js"),
+		getScript("_markdown-it.min.js", "https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.0.4/markdown-it.min.js"),
+		getScript("_markdown-it-mark.js","https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/_markdown-it-mark.js")
+	];
+        Promise.all(getResources).then(() => getScript("_mhchem.js", "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/mhchem.min.js")).then(render).catch(show);
+	
+
+	function getScript(path, altURL) {
+		return new Promise((resolve, reject) => {
+			let script = document.createElement("script");
+			script.onload = resolve;
+			script.onerror = function() {
+				let script_online = document.createElement("script");
+				script_online.onload = resolve;
+				script_online.onerror = reject;
+				script_online.src = altURL;
+				document.head.appendChild(script_online);
+			}
+			script.src = path;
+			document.head.appendChild(script);
+		})
+	}
+
+	function getCSS(path, altURL) {
+		return new Promise((resolve, reject) => {
+			var css = document.createElement('link');
+			css.setAttribute('rel', 'stylesheet');
+			css.type = 'text/css';
+			css.onload = resolve;
+			css.onerror = function() {
+				var css_online = document.createElement('link');
+				css_online.setAttribute('rel', 'stylesheet');
+				css_online.type = 'text/css';
+				css_online.onload = resolve;
+				css_online.onerror = reject;
+				css_online.href = altURL;
+				document.head.appendChild(css_online);
+			}
+			css.href = path;
+			document.head.appendChild(css);
+		});
+	}
+
+	function render() {
+		renderMath("name");
+		markdown("name");
+		renderMath("front");
+		markdown("front");
+		renderMath("back");
+		markdown("back");
+		renderMath("example");
+		markdown("example");
+		renderMath("source");
+		markdown("source");
+		show();
+	}
+
+	function show() {
+		document.getElementById("name").style.visibility = "visible";
+		document.getElementById("front").style.visibility = "visible";
+		document.getElementById("back").style.visibility = "visible";
+		document.getElementById("example").style.visibility = "visible";
+		document.getElementById("source").style.visibility = "visible";
+		document.getElementById("external_source").style.visibility = "visible";
+	}
+
+
+	function renderMath(ID) {
+		let text = document.getElementById(ID).innerHTML;
+		text = replaceInString(text);
+		document.getElementById(ID).textContent = text;
+		renderMathInElement(document.getElementById(ID), {
+			delimiters:  [
+  				{left: "$$", right: "$$", display: true},
+  				{left: "$", right: "$", display: false}
+			],
+                        throwOnError : false
+		});
+	}
+	function markdown(ID) {
+		let md = new markdownit({typographer: true, html:true, highlight: function (str, lang) {
+                            if (lang && hljs.getLanguage(lang)) {
+                                try {
+                                    return hljs.highlight(str, { language: lang }).value;
+                                } catch (__) {}
+                            }
+
+                            return ''; // use external default escaping
+                        }}).use(markdownItMark);
+		let text = replaceHTMLElementsInString(document.getElementById(ID).innerHTML);
+		text = md.render(text);
+		document.getElementById(ID).innerHTML = text.replace(/&lt;\/span&gt;/gi,"\\");
+	}
+	function replaceInString(str) {
+		str = str.replace(/<[\/]?pre[^>]*>/gi, "");
+		str = str.replace(/<br\s*[\/]?[^>]*>/gi, "\n");
+		str = str.replace(/<div[^>]*>/gi, "\n");
+		// Thanks Graham A!
+		str = str.replace(/<[\/]?span[^>]*>/gi, "")
+		str.replace(/<\/div[^>]*>/g, "\n");
+		return replaceHTMLElementsInString(str);
+	}
+
+	function replaceHTMLElementsInString(str) {
+		str = str.replace(/&nbsp;/gi, " ");
+		str = str.replace(/&tab;/gi, "	");
+		str = str.replace(/&gt;/gi, ">");
+		str = str.replace(/&lt;/gi, "<");
+		return str.replace(/&amp;/gi, "&");
+	}
+</script>
 """
 
     card_templates = [{
@@ -100,11 +311,28 @@ function send_pdf_info_back(){
 
     css = """.card {
     font-family: arial;
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: 	16px;
+		line-height: 1.5;
     text-align: center;
     color: black;
     background-color: white;
+}
+
+table, th, td {
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+
+#front, #back, #extra {
+	visibility: hidden;
+}
+
+pre code {
+  background-color: #eee;
+  border: 1px solid #999;
+  display: block;
+  padding: 20px;
+  overflow: auto;
 }
 
 @media (max-width: 767px) {
@@ -113,50 +341,28 @@ function send_pdf_info_back(){
     }
 }
 
-pre:has(code),
-table:has(.highlight),
-.inline {
-    width: auto;
-    overflow: auto;
-    box-sizing: border-box;
-}
-
-pre:has(code),
-div.highlight,
-.inline {
-    padding: 10px;
-    border: 1px solid;
-    border-radius: 10px;
-    border-color: DarkGray;
-}
-
-.inline {
-    font-family: monospace;
-    background-color: #ecf0f1;
-}
-
 li {
-    margin-top: 10px;
+		margin-top: 10px;
 }
 
 code {
-    padding-left: 3px;
-    padding-right: 3px;
-    margin-left: 2px;
-    margin-right: 2px;
-    border-radius: 3px;
-    background-color: #ecf0f1;
-    font-family: monospace;
-    font-weight: 500;
+		padding-left: 3px;
+		padding-right: 3px;
+		margin-left: 2px;
+		margin-right: 2px;
+		border-radius: 3px;
+		background-color: #ecf0f1;
+		font-family: monospace;
+		font-weight: 500;
 }
 
 .container {
-    display: flex;
-    justify-content: center;
+		display: flex;
+		justify-content: center;
 }
 
 .ex-break {
-    width: 50%;
+		width: 50%;
 }
 """
 
