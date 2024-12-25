@@ -15,25 +15,12 @@ def determine_collection_media_path():
         return os.path.expanduser('~/Documents/Anki2/User 1/collection.media')
 
 def process_file(file_path, used_dir, tags):
-    """
-    Process an individual file:
-    - Move it into the corresponding folder in used-files.
-    - Copy it into Anki's collection.media (or a subfolder like _pdf_files for PDFs).
-    - Run generator.py on it with the provided tags.
-    """
-
     global processed_any_files
 
-    # If this directory structure doesn't exist in used_dir, create it.
-    # For example, if file_path is flashcard-data/subfolderA/file.png
-    # and used_dir is flashcard-data/used-files
-    # we want flashcard-data/used-files/subfolderA/file.png
     base_dir = os.path.dirname(file_path)
-    # Find relative path of current file directory to the top-level directory
-    # Assuming DIRECTORY_PATH is top-level, we can reconstruct:
     rel_path = os.path.relpath(base_dir, DIRECTORY_PATH)
     if rel_path == '.':
-        rel_path = ''  # top-level files go directly in used-files
+        rel_path = ''
 
     target_dir = os.path.join(used_dir, rel_path)
     os.makedirs(target_dir, exist_ok=True)
@@ -41,11 +28,9 @@ def process_file(file_path, used_dir, tags):
     new_file_path = os.path.join(target_dir, os.path.basename(file_path))
     shutil.move(file_path, new_file_path)
 
-    # Ensure collection.media directory exists
     collection_media_path = determine_collection_media_path()
     os.makedirs(collection_media_path, exist_ok=True)
 
-    # Check file extension and copy appropriately
     file_ext = os.path.splitext(new_file_path)[1].lower()
     if file_ext in ['.png', '.jpg', '.jpeg', '.gif']:
         shutil.copy2(new_file_path, collection_media_path)
@@ -54,16 +39,23 @@ def process_file(file_path, used_dir, tags):
         os.makedirs(pdf_dir, exist_ok=True)
         shutil.copy2(new_file_path, pdf_dir)
     else:
-        # For other file types, if needed, we can handle differently or just copy directly
         shutil.copy2(new_file_path, collection_media_path)
 
-    # Call generator.py with the file and tags
-    # The instructions: pass tags if and only if other files aside from tags.txt exist.
-    # We are at this point only processing a file that is not tags.txt, so tags exist.
-    subprocess.run([sys.executable, 'generator.py', new_file_path, os.path.basename(new_file_path)] + tags)
+    # Determine if the file is from the "problem-solving" folder
+    is_problem_solving = 'problem_solving' in os.path.normpath(rel_path).split(os.sep)
+
+    # Prepare command for generator.py
+    command = [sys.executable, 'generator.py', new_file_path, os.path.basename(new_file_path), collection_media_path] + tags
+
+    # Append --code flag if from problem-solving folder
+    if is_problem_solving:
+        command.append('--code')
+
+    subprocess.run(command)
 
     processed_any_files = True
 
+tags = []
 def process_directory_recursive(current_directory, used_dir):
     """
     Recursively process a directory:
@@ -95,7 +87,6 @@ def process_directory_recursive(current_directory, used_dir):
 
     # Check for tags.txt
     tags_file = os.path.join(current_directory, "tags.txt")
-    tags = []
     tags_exist = False
     if os.path.isfile(tags_file):
         tags_exist = True

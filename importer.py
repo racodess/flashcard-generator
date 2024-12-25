@@ -4,6 +4,8 @@ from functools import wraps
 import urllib.request
 from rich.console import Console
 from rich.pretty import pprint
+import templates
+import models
 
 console = Console()
 
@@ -28,374 +30,124 @@ def invoke(action, **params):
     return response['result']
 
 
-def ensure_model_exists():
-    model_name = "AnkiConnect: Test"
+def ensure_template_exists(template_name):
     existing_models = invoke("modelNames")
-    if model_name in existing_models:
-        console.log(f"Model '{model_name}' already exists.")
+
+    if template_name in existing_models:
+        console.log(f"Model '{template_name}' already exists.")
         return
 
-    console.log(f"Model '{model_name}' not found. Creating it...")
+    console.log(f"Model '{template_name}' not found. Creating it...")
 
-    fields = [
-        "Name",
-        "Front",
-        "Back",
-        "Example",
-        "Citation",
-        "Source",
-        "Image",
-        "external_source",
-        "external_page"
-    ]
+    if template_name == templates.PROBLEM_CARD_NAME:
+        fields = templates.PROBLEM_TEMPLATE_FIELDS
+        card_templates = [
+            {
+                "Name": "Approach",
+                "Front": templates.PROBLEM_APPROACH_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_APPROACH_BACK_TEMPLATE
+            },
+            {
+                "Name": "Time and Space",
+                "Front": templates.PROBLEM_TIME_SPACE_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_TIME_SPACE_BACK_TEMPLATE
+            },
+            {
+                "Name": "Step 1",
+                "Front": templates.PROBLEM_STEP1_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_STEP1_BACK_TEMPLATE
+            },
+            {
+                "Name": "Step 2",
+                "Front": templates.PROBLEM_STEP2_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_STEP2_BACK_TEMPLATE
+            },
+            {
+                "Name": "Step 3",
+                "Front": templates.PROBLEM_STEP3_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_STEP3_BACK_TEMPLATE
+            },
+            {
+                "Name": "Step 4",
+                "Front": templates.PROBLEM_STEP4_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_STEP4_BACK_TEMPLATE
+            },
+            {
+                "Name": "Step 5",
+                "Front": templates.PROBLEM_STEP5_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_STEP5_BACK_TEMPLATE
+            },
+            {
+                "Name": "Step 6",
+                "Front": templates.PROBLEM_STEP6_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_STEP6_BACK_TEMPLATE
+            },
+            {
+                "Name": "Step 7",
+                "Front": templates.PROBLEM_STEP7_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_STEP7_BACK_TEMPLATE
+            },
+            {
+                "Name": "Step 8",
+                "Front": templates.PROBLEM_STEP8_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_STEP8_BACK_TEMPLATE
+            },
+            {
+                "Name": "Step 9",
+                "Front": templates.PROBLEM_STEP9_FRONT_TEMPLATE,
+                "Back": templates.PROBLEM_STEP9_BACK_TEMPLATE
+            },
+        ]
+    else:
+        fields = templates.BASIC_TEMPLATE_FIELDS
+        card_templates = [{
+            "Name": "Front to Back",
+            "Front": templates.BASIC_FRONT_TEMPLATE,
+            "Back": templates.BASIC_BACK_TEMPLATE
+        }]
 
-    front_template = r"""{{#Name}}<div id="name"><pre><strong><u>{{Name}}</strong></u><br><br></pre></div>{{/Name}}
+    css = templates.BASIC_CSS
 
-<div id="front"><pre>{{Front}}</pre></div>
+    invoke("createModel", modelName=template_name, inOrderFields=fields, cardTemplates=card_templates, css=css)
 
-<script>
-	var getResources = [
-		getCSS("_katex.css", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css"),
-		getCSS("_highlight.css", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/styles/default.min.css"),
-		getScript("_highlight.js", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/highlight.min.js"),
-		getScript("_katex.min.js", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"),
-		getScript("_auto-render.js", "https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/auto-render-cdn.js"),
-		getScript("_markdown-it.min.js", "https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.0.4/markdown-it.min.js"),
-		getScript("_markdown-it-mark.js","https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/_markdown-it-mark.js")
-	];
-        Promise.all(getResources).then(() => getScript("_mhchem.js", "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/mhchem.min.js")).then(render).catch(show);
-	
-
-	function getScript(path, altURL) {
-		return new Promise((resolve, reject) => {
-			let script = document.createElement("script");
-			script.onload = resolve;
-			script.onerror = function() {
-				let script_online = document.createElement("script");
-				script_online.onload = resolve;
-				script_online.onerror = reject;
-				script_online.src = altURL;
-				document.head.appendChild(script_online);
-			}
-			script.src = path;
-			document.head.appendChild(script);
-		})
-	}
-
-	function getCSS(path, altURL) {
-		return new Promise((resolve, reject) => {
-			var css = document.createElement('link');
-			css.setAttribute('rel', 'stylesheet');
-			css.type = 'text/css';
-			css.onload = resolve;
-			css.onerror = function() {
-				var css_online = document.createElement('link');
-				css_online.setAttribute('rel', 'stylesheet');
-				css_online.type = 'text/css';
-				css_online.onload = resolve;
-				css_online.onerror = reject;
-				css_online.href = altURL;
-				document.head.appendChild(css_online);
-			}
-			css.href = path;
-			document.head.appendChild(css);
-		});
-	}
-
-	function render() {
-		renderMath("name");
-		markdown("name");
-		renderMath("front");
-		markdown("front");
-		show();
-	}
-
-	function show() {
-		document.getElementById("name").style.visibility = "visible";
-		document.getElementById("front").style.visibility = "visible";
-		document.getElementById("back").style.visibility = "visible";
-		document.getElementById("example").style.visibility = "visible";
-		document.getElementById("source").style.visibility = "visible";
-		document.getElementById("external_source").style.visibility = "visible";
-	}
+    console.log(f"Model '{template_name}' created successfully.")
 
 
-	function renderMath(ID) {
-		let text = document.getElementById(ID).innerHTML;
-		text = replaceInString(text);
-		document.getElementById(ID).textContent = text;
-		renderMathInElement(document.getElementById(ID), {
-			delimiters:  [
-  				{left: "$$", right: "$$", display: true},
-  				{left: "$", right: "$", display: false}
-			],
-                        throwOnError : false
-		});
-	}
-	function markdown(ID) {
-		let md = new markdownit({typographer: true, html:true, highlight: function (str, lang) {
-                            if (lang && hljs.getLanguage(lang)) {
-                                try {
-                                    return hljs.highlight(str, { language: lang }).value;
-                                } catch (__) {}
-                            }
-
-                            return ''; // use external default escaping
-                        }}).use(markdownItMark);
-		let text = replaceHTMLElementsInString(document.getElementById(ID).innerHTML);
-		text = md.render(text);
-		document.getElementById(ID).innerHTML = text.replace(/&lt;\/span&gt;/gi,"\\");
-	}
-	function replaceInString(str) {
-		str = str.replace(/<[\/]?pre[^>]*>/gi, "");
-		str = str.replace(/<br\s*[\/]?[^>]*>/gi, "\n");
-		str = str.replace(/<div[^>]*>/gi, "\n");
-		// Thanks Graham A!
-		str = str.replace(/<[\/]?span[^>]*>/gi, "")
-		str.replace(/<\/div[^>]*>/g, "\n");
-		return replaceHTMLElementsInString(str);
-	}
-
-	function replaceHTMLElementsInString(str) {
-		str = str.replace(/&nbsp;/gi, " ");
-		str = str.replace(/&tab;/gi, "	");
-		str = str.replace(/&gt;/gi, ">");
-		str = str.replace(/&lt;/gi, "<");
-		return str.replace(/&amp;/gi, "&");
-	}
-</script>
-"""
-    back_template = r"""{{FrontSide}}
-
-<hr id=answer>
-
-<div id="back"><pre>{{Back}}</pre></div>
-
-{{#Example}}<br><br><div id="example"><pre>{{Example}}</pre></div>{{/Example}}
-
-{{#Image}}<br><br><div id="image"><pre><img src="{{Image}}" /></pre></div>{{/Image}}
-
-{{#external_source}}
-<br><br>
-<a class="pdfjsaddon_twofields" onclick="send_pdf_info_back(); return false" href="#">Source: {{text:external_source}}</a>
-<script src="_js_base64_minified_for_pdf_viewer_addon.js"></script>
-<script>
-function send_pdf_info_back(){
-    var pdf_viewer_helper__encoded = Base64.encode("{{text:external_source}}");
-    var merged_pdf_addon = `pdfjs319501851${pdf_viewer_helper__encoded}319501851{{text:external_page}}`;
-    pycmd(merged_pdf_addon);
-}
-</script>
-{{/external_source}}
-
-{{#Source}}<br><br><div id="source" style='text-align: left'><pre>{{Source}}</pre></div>{{/Source}}
-
-<script>
-    var getResources = [
-        getCSS("_katex.css", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css"),
-        getCSS("_highlight.css", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/styles/default.min.css"),
-        getScript("_highlight.js", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/highlight.min.js"),
-        getScript("_katex.min.js", "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"),
-        getScript("_auto-render.js", "https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/auto-render-cdn.js"),
-        getScript("_markdown-it.min.js", "https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.0.4/markdown-it.min.js"),
-        getScript("_markdown-it-mark.js","https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/_markdown-it-mark.js")
-    ];
-        Promise.all(getResources).then(() => getScript("_mhchem.js", "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/mhchem.min.js")).then(render).catch(show);
-    
-
-    function getScript(path, altURL) {
-        return new Promise((resolve, reject) => {
-            let script = document.createElement("script");
-            script.onload = resolve;
-            script.onerror = function() {
-                let script_online = document.createElement("script");
-                script_online.onload = resolve;
-                script_online.onerror = reject;
-                script_online.src = altURL;
-                document.head.appendChild(script_online);
-            }
-            script.src = path;
-            document.head.appendChild(script);
-        })
-    }
-
-    function getCSS(path, altURL) {
-        return new Promise((resolve, reject) => {
-            var css = document.createElement('link');
-            css.setAttribute('rel', 'stylesheet');
-            css.type = 'text/css';
-            css.onload = resolve;
-            css.onerror = function() {
-                var css_online = document.createElement('link');
-                css_online.setAttribute('rel', 'stylesheet');
-                css_online.type = 'text/css';
-                css_online.onload = resolve;
-                css_online.onerror = reject;
-                css_online.href = altURL;
-                document.head.appendChild(css_online);
-            }
-            css.href = path;
-            document.head.appendChild(css);
-        });
-    }
-
-    function render() {
-        renderMath("name");
-        markdown("name");
-        renderMath("front");
-        markdown("front");
-        renderMath("back");
-        markdown("back");
-        renderMath("example");
-        markdown("example");
-        renderMath("source");
-        markdown("source");
-        show();
-    }
-
-    function show() {
-        document.getElementById("name").style.visibility = "visible";
-        document.getElementById("front").style.visibility = "visible";
-        document.getElementById("back").style.visibility = "visible";
-        document.getElementById("example").style.visibility = "visible";
-        document.getElementById("source").style.visibility = "visible";
-        document.getElementById("external_source").style.visibility = "visible";
-    }
-
-
-    function renderMath(ID) {
-        let text = document.getElementById(ID).innerHTML;
-        text = replaceInString(text);
-        document.getElementById(ID).textContent = text;
-        renderMathInElement(document.getElementById(ID), {
-            delimiters:  [
-                {left: "$$", right: "$$", display: true},
-                {left: "$", right: "$", display: false}
-            ],
-                        throwOnError : false
-        });
-    }
-    function markdown(ID) {
-        let md = new markdownit({typographer: true, html:true, highlight: function (str, lang) {
-                            if (lang && hljs.getLanguage(lang)) {
-                                try {
-                                    return hljs.highlight(str, { language: lang }).value;
-                                } catch (__) {}
-                            }
-
-                            return ''; // use external default escaping
-                        }}).use(markdownItMark);
-        let text = replaceHTMLElementsInString(document.getElementById(ID).innerHTML);
-        text = md.render(text);
-        document.getElementById(ID).innerHTML = text.replace(/&lt;\/span&gt;/gi,"\\");
-    }
-    function replaceInString(str) {
-        str = str.replace(/<[\/]?pre[^>]*>/gi, "");
-        str = str.replace(/<br\s*[\/]?[^>]*>/gi, "\n");
-        str = str.replace(/<div[^>]*>/gi, "\n");
-        // Thanks Graham A!
-        str = str.replace(/<[\/]?span[^>]*>/gi, "")
-        str.replace(/<\/div[^>]*>/g, "\n");
-        return replaceHTMLElementsInString(str);
-    }
-
-    function replaceHTMLElementsInString(str) {
-        str = str.replace(/&nbsp;/gi, " ");
-        str = str.replace(/&tab;/gi, "	");
-        str = str.replace(/&gt;/gi, ">");
-        str = str.replace(/&lt;/gi, "<");
-        return str.replace(/&amp;/gi, "&");
-    }
-</script>
-"""
-
-    card_templates = [{
-        "Name": "Card 1",
-        "Front": front_template,
-        "Back": back_template
-    }]
-
-    css = """.card {
-    font-family: arial;
-    font-size: 	16px;
-        line-height: 1.5;
-    text-align: center;
-    color: black;
-    background-color: white;
-}
-
-table, th, td {
-    border: 1px solid black;
-    border-collapse: collapse;
-}
-
-#front, #back, #extra {
-    visibility: hidden;
-}
-
-pre code {
-  background-color: #eee;
-  border: 1px solid #999;
-  display: block;
-  padding: 20px;
-  overflow: auto;
-}
-
-@media (max-width: 767px) {
-    .card {
-        font-size: 12px;
-    }
-}
-
-li {
-        margin-top: 10px;
-}
-
-code {
-        padding-left: 3px;
-        padding-right: 3px;
-        margin-left: 2px;
-        margin-right: 2px;
-        border-radius: 3px;
-        background-color: #ecf0f1;
-        font-family: monospace;
-        font-weight: 500;
-}
-
-.container {
-        display: flex;
-        justify-content: center;
-}
-
-.ex-break {
-        width: 50%;
-}
-"""
-
-    invoke("createModel", modelName=model_name, inOrderFields=fields, cardTemplates=card_templates, css=css)
-    console.log(f"Model '{model_name}' created successfully.")
-
-
-def add_flashcards_to_anki(flashcards, deck_name="Default"):
-    ensure_model_exists()
+def add_flashcards_to_anki(flashcards_model, template_name="Default", deck_name="Default"):
+    ensure_template_exists(template_name)
 
     notes = []
-    for fc in flashcards:
+    for fc in flashcards_model.flashcards:
         fields = {
-            "Name": fc.name,
-            "Front": fc.front,
-            "Back": fc.back,
-            "Example": fc.example,
-            "Citation": fc.citation,
-            "Source": fc.source,
+            "Header": fc.title,
             "Image": fc.image,
             "external_source": fc.external_source,
             "external_page": str(fc.external_page),
         }
 
+        if isinstance(fc, models.ProblemFlashcardItem):
+            fields["Problem"] = flashcards_model.problem
+            fields["URL"] = flashcards_model.url
+            fields["Approach"] = fc.approach
+            fields["Solution"] = fc.solution
+
+            for i, step in enumerate(fc.steps):
+                fields[f"Step {i + 1}"] = step.step
+                fields[f"Code {i + 1}"] = step.code
+                fields[f"Pitfall {i + 1}"] = step.pitfall
+
+            fields["Time"] = fc.time
+            fields["Time Explanation"] = fc.time_explanation
+            fields["Space"] = fc.space
+            fields["Space Explanation"] = fc.space_explanation
+        else:
+            fields["Front"] = fc.front,
+            fields["Back"] = fc.back,
+            fields["Example"] = fc.example,
+
         note = {
             "deckName": deck_name,
-            "modelName": "AnkiConnect: Test",
+            "modelName": template_name,
             "fields": fields,
             "options": {
                 "allowDuplicate": True
