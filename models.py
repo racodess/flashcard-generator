@@ -1,6 +1,12 @@
 from typing import List, Literal
 from pydantic import BaseModel, Field, ConfigDict, ValidationError
 
+class Data(BaseModel):
+    image: Literal[""]
+    external_source: Literal[""]
+    external_page: Literal[""]
+
+
 class Extra(BaseModel):
     context: str = Field(
         description="In one comprehensive paragraph, paraphrase the context before and after the current concept in the source material without sacrificing the original terminology."
@@ -68,15 +74,13 @@ class FlashcardItem(BaseModel):
     content: Content = Field(
         description="The container for the finalized question and answer that test the key concept, carefully derived from the source material."
     )
-    title: Literal[""]
+    header: Literal[""]
     front: Literal[""]
     back: Literal[""]
     example: str = Field(
         description="The contents of the example field within the current concept's `extra` field. Represents the source material example tied to the current concept item, if one existed, otherwise an empty string "" for structural consistency."
     )
-    image: Literal[""]
-    external_source: Literal[""]
-    external_page: Literal[""]
+    data: Data
     tags: List[str] = Field(
         description = "The contents of the tags field within the current concept's `extra` field. Represents the relevant list of Anki tags chosen for the current concept item."
     )
@@ -84,7 +88,7 @@ class FlashcardItem(BaseModel):
 
 
 class Flashcard(BaseModel):
-    title: str = Field(
+    header: str = Field(
         description=(
             """
             Develop an accurate and succinct title in markdown. The title should follow the format `BroadTopic: SpecificConcept` (e.g., 'Java: Identifiers'). 
@@ -98,28 +102,6 @@ class Flashcard(BaseModel):
             """
             A list of flashcards derived from each and every single concept item in the list of concepts by following the provided Anki best practices for flashcards.
             Each FlashcardItem must reflect a crucial aspect of the concept, with well-formed front/back, source material example, and accurate Anki tags that best represent the item.
-            """
-        )
-    )
-    model_config = ConfigDict(extra='forbid')
-
-
-class Restatement(BaseModel):
-    restatement: str = Field(
-        description=(
-            """
-            Think step-by-step to produce a concise restatement of the original LeetCode problem:
-            
-            1. Comprehend the Specifics: Grasp the details and requirements of the original problem.
-            2. Abstract Core Components: Identify and generalize the key elements and constraints.
-            3. Map to Standard Problems: Relate the abstracted problem to well-known algorithmic challenges.
-            4. Formulate General Statement: Rephrase the problem in generalized terms that align with standard problems.
-            
-            - Ignore references to PDF artifacts, page numbers, or other extraneous text.
-            
-            - **Example:**
-                - **Problem:** You are given a binary string s (a string containing only `0` and `1`). You may choose up to one `0` and flip it to a `1`. What is the length of the longest substring achievable that contains only `1`?
-                - **Restatement:** Because the string can only contain `1` and `0`, another way to look at this problem is 'what is the longest substring that contains at most one `0`'?.
             """
         )
     )
@@ -140,7 +122,7 @@ class Step(BaseModel):
 
 
 class ProblemFlashcardItem(BaseModel):
-    title: str = Field(
+    header: str = Field(
         description=(
             """
             Think step-by-step to develop an accurate and succinct title in markdown.
@@ -182,9 +164,7 @@ class ProblemFlashcardItem(BaseModel):
     space_explanation: str = Field(
         description="A comprehensive insightful explanation of the space complexity of this approach."
     )
-    image: Literal[""]
-    external_source: Literal[""]
-    external_page: Literal[""]
+    data: Data
     tags: List[str] = Field(
         description=(
             """

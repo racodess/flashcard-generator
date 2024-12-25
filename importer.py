@@ -1,3 +1,4 @@
+import re
 import html
 import json
 import models
@@ -110,24 +111,60 @@ def ensure_template_exists(template_name):
     console.log(f"Model '{template_name}' created successfully.")
 
 
+def create_deck(deck_name):
+    return invoke("createDeck", deck=deck_name)
+
+
+def get_default_deck():
+    existing_decks = invoke("deckNames")
+
+    if not existing_decks:
+        console.log("Failed to retrieve deck names from Anki.")
+        return
+
+    imported_deck_pattern = re.compile(r'^Imported(\d+)$', re.IGNORECASE)
+    imported_deck_numbers = []
+
+    for deck in existing_decks:
+        match = imported_deck_pattern.match(deck)
+        if match:
+            imported_deck_numbers.append(int(match.group(1)))
+
+    if imported_deck_numbers:
+        next_deck_number = max(imported_deck_numbers) + 1
+    else:
+        next_deck_number = 1
+
+    deck_name = f"Imported{next_deck_number}"
+    create_deck(deck_name)
+
+    console.log(f"Importing flashcards to deck: {deck_name}")
+
+    return deck_name
+
+
 def escape_html_entities(text):
     text = html.escape(text, quote=False)
     return text
 
 
-def add_flashcards_to_anki(flashcards_model, template_name="Default", deck_name="Default"):
+def get_notes(flashcards_model, template_name, deck_name):
     ensure_template_exists(template_name)
+
+    if deck_name is None:
+        deck_name = get_default_deck()
+    else:
+        deck_name = deck_name
 
     notes = []
     for fc in flashcards_model.flashcards:
         fields = {
-            "Header": fc.title,
             "Image": fc.image,
             "external_source": fc.external_source,
             "external_page": str(fc.external_page),
         }
-
         if isinstance(fc, models.ProblemFlashcardItem):
+            fields["Header"] = fc.header
             fields["Problem"] = flashcards_model.problem
             fields["URL"] = flashcards_model.url
             fields["Approach"] = fc.approach
@@ -143,6 +180,7 @@ def add_flashcards_to_anki(flashcards_model, template_name="Default", deck_name=
             fields["Space"] = fc.space
             fields["Space Explanation"] = fc.space_explanation
         else:
+            fields["Header"] = flashcards_model.header
             fields["Front"] = fc.front,
             fields["Back"] = fc.back,
             fields["Example"] = fc.example,
@@ -158,5 +196,21 @@ def add_flashcards_to_anki(flashcards_model, template_name="Default", deck_name=
         }
         notes.append(note)
 
+    return notes
+
+
+def add_flashcards_to_anki(flashcards_model, template_name="Default", deck_name=None):
+    notes = get_notes(flashcards_model, template_name, deck_name)
+
     result = invoke("addNotes", notes=notes)
+
+    if result:
+        if all(note_id is not None for note_id in result):
+            console.log(f"Successfully added {len(result)} notes to deck '{deck_name}'.")
+        else:
+            failed_notes = [i for i, note_id in enumerate(result) if note_id is None]
+            console.log(f"Failed to add {len(failed_notes)} notes to deck '{deck_name}'.")
+    else:
+        console.log("Failed to add notes to Anki.")
+
     console.log("Notes added with IDs:", result)

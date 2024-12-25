@@ -115,6 +115,86 @@ code {
 }
 """
 
+ADDITIONAL_CSS = r"""
+@page {
+    size: Letter;
+    margin: 0.25in;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 20px;
+}
+th, td {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    color: #2c3e50;
+    margin: 0; /* We rely on @page margin for PDF */
+}
+p {
+    margin: 0 0 1em 0;
+}
+ul, ol {
+    margin: 0 0 1em 1.5em;
+    padding: 0;
+    list-style-position: outside;
+}
+li {
+    margin-bottom: 0.5em;
+}
+strong {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+div.codehilite, pre {
+    background-color: #272822; 
+    color: #f8f8f2;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+    margin: 1em 0;
+    font-family: Consolas, "Courier New", Courier, monospace;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+div.codehilite code, pre code {
+    background: none;  /* Let the parent div handle background */
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+/* Pygments token classes you may see in the snippet:
+   .n (names), .nf (function names), .k (keywords),
+   .kd (keyword declarations), .kt (data types), .c1 (comments),
+   .mi (numbers), .err (lexing errors), etc.
+*/
+.n  { color: #a8b3ab; }     /* Generic text/name */
+.nf { color: #66d9ef; }     /* Function name */
+.k  { color: #66d9ef; }     /* Keyword */
+.kd { color: #66d9ef; }     /* Keyword declaration (e.g., 'public', 'class') */
+.kt { color: #fd971f; }     /* Data type keywords (e.g., int, float) */
+.c1 { color: #75715e; font-style: italic; }  /* Comment */
+.mi { color: #ae81ff; }     /* Number (int, float literals) */
+.err { color: #ff0000; }    /* Anything flagged as an error token */
+code {
+    background-color: #f5f5f5;
+    color: #c7254e;
+    font-family: Consolas, "Courier New", Courier, monospace;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+"""
+
 MARKDOWN_KATEX_SCRIPT = r"""
 <script>
 	var getResources = [
@@ -205,7 +285,8 @@ MARKDOWN_KATEX_SCRIPT = r"""
 	}
 """
 
-BASIC_FRONT_MAIN = r"""{{#Name}}<div id="name"><pre><strong><u>{{Name}}</strong></u><br><br></pre></div>{{/Name}}
+BASIC_FRONT_MAIN = r"""
+{{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u><br><br></pre></div>{{/Header}}
 
 <div id="front"><pre>{{Front}}</pre></div>
 """
@@ -221,17 +302,14 @@ function render() {
 function show() {
     document.getElementById("header").style.visibility = "visible";
     document.getElementById("front").style.visibility = "visible";
-    document.getElementById("back").style.visibility = "visible";
-    document.getElementById("example").style.visibility = "visible";
-    document.getElementById("source").style.visibility = "visible";
-    document.getElementById("external_source").style.visibility = "visible";
 }
 </script>
 """
 
 BASIC_FRONT_TEMPLATE = BASIC_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT + BASIC_FRONT_SCRIPT
 
-BASIC_BACK_MAIN = r"""{{FrontSide}}
+BASIC_BACK_MAIN = r"""
+{{FrontSide}}
 
 <hr id=answer>
 
