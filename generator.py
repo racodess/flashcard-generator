@@ -8,7 +8,7 @@ from rich.pretty import Pretty, pprint
 
 import importer
 import models
-import processor
+import utils
 import prompts
 
 from openai import OpenAI
@@ -257,17 +257,17 @@ def generate_flashcards(collection_media_path, file_type, file_name, file_conten
 
 
 def main():
-    args = processor.get_args()
+    args = utils.get_args()
 
     file_path = args.file_path
     file_name = args.file_name
     collection_media_path = args.collection_media_path
     tags = args.tags
     is_code = args.code
-    file_type = processor.detect_file_type(
+    file_type = utils.detect_file_type(
         file_path
     )
-    file_contents = processor.process_data(
+    file_contents = utils.process_data(
         file_path,
         file_type
     )

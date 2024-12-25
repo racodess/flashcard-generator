@@ -225,7 +225,7 @@ def create_pdf_from_markdown(collection_media_path, file_name, text_markdown):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python processor.py <directory_path>")
+        print("Usage: python utils.py <directory_path>")
         sys.exit(1)
 
     DIRECTORY_PATH = sys.argv[1]
