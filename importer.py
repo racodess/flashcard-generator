@@ -1,14 +1,11 @@
+import html
 import json
-import warnings
-from functools import wraps
+import models
+import templates
 import urllib.request
 from rich.console import Console
-from rich.pretty import pprint
-import templates
-import models
 
 console = Console()
-
 
 def request(action, **params):
     return {'action': action, 'params': params, 'version': 6}
@@ -113,6 +110,11 @@ def ensure_template_exists(template_name):
     console.log(f"Model '{template_name}' created successfully.")
 
 
+def escape_html_entities(text):
+    text = html.escape(text, quote=False)
+    return text
+
+
 def add_flashcards_to_anki(flashcards_model, template_name="Default", deck_name="Default"):
     ensure_template_exists(template_name)
 
@@ -129,11 +131,11 @@ def add_flashcards_to_anki(flashcards_model, template_name="Default", deck_name=
             fields["Problem"] = flashcards_model.problem
             fields["URL"] = flashcards_model.url
             fields["Approach"] = fc.approach
-            fields["Solution"] = fc.solution
+            fields["Solution"] = escape_html_entities(fc.solution)
 
             for i, step in enumerate(fc.steps):
                 fields[f"Step {i + 1}"] = step.step
-                fields[f"Code {i + 1}"] = step.code
+                fields[f"Code {i + 1}"] = escape_html_entities(step.code)
                 fields[f"Pitfall {i + 1}"] = step.pitfall
 
             fields["Time"] = fc.time
