@@ -74,9 +74,6 @@ class FlashcardItem(BaseModel):
     content: Content = Field(
         description="The container for the finalized question and answer that test the key concept, carefully derived from the source material."
     )
-    header: Literal[""]
-    front: Literal[""]
-    back: Literal[""]
     example: str = Field(
         description="The contents of the example field within the current concept's `extra` field. Represents the source material example tied to the current concept item, if one existed, otherwise an empty string "" for structural consistency."
     )
