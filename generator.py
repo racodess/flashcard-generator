@@ -1,10 +1,7 @@
-import os
 import sys
-import json
 
 from rich.console import Console
-from rich.markdown import Markdown
-from rich.pretty import Pretty, pprint
+from rich.pretty import Pretty
 
 import importer
 import models
@@ -49,7 +46,7 @@ def get_completion(file_type, model, message_list, response_format):
 def handle_completion(system_message, user_message, response_format, file_type, run_as_image=False):
     message_list = [{"role": "system", "content": system_message}]
 
-    print_message("system", system_message, response_format, model=None, markdown=True)
+    utils.print_message("system", system_message, response_format, model=None, markdown=True)
 
     if run_as_image:
         model = GPT_4O
@@ -61,12 +58,12 @@ def handle_completion(system_message, user_message, response_format, file_type, 
                 }
             }
         ]
-        append_message("user", content, message_list)
-        print_message("user", prompts.PLACEHOLDER_MESSAGE, response_format, model=None, markdown=True)
+        utils.append_message("user", content, message_list)
+        utils.print_message("user", prompts.PLACEHOLDER_MESSAGE, response_format, model=None, markdown=True)
     else:
         model = GPT_4O_MINI
-        append_message("user", user_message, message_list)
-        print_message("user", user_message, response_format, model=None, markdown=True)
+        utils.append_message("user", user_message, message_list)
+        utils.print_message("user", user_message, response_format, model=None, markdown=True)
 
     completion = get_completion(
         file_type,
@@ -75,73 +72,20 @@ def handle_completion(system_message, user_message, response_format, file_type, 
         response_format=response_format,
     )
 
-    print_message("token", completion.usage, response_format, model=None, markdown=False)
+    utils.print_message("token", completion.usage, response_format, model=None, markdown=False)
     model = completion.model
     response = completion.choices[0].message.content
 
     if response_format is prompts.TEXT_FORMAT:
-        print_message("assistant", response, response_format, model, markdown=True)
+        utils.print_message("assistant", response, response_format, model, markdown=True)
     else:
-        print_message("assistant", response, response_format, model, markdown=False)
+        utils.print_message("assistant", response, response_format, model, markdown=False)
 
     return response
 
 
-def parse_llm_response(response_str):
-    try:
-        data = json.loads(response_str)
-
-        concepts = data.get("concepts", [])
-
-        return concepts
-
-    except json.JSONDecodeError as e:
-        print(f"Error parsing JSON in parse_llm_response method: {e}")
-
-        return [], []
-
-
-def print_message(role, content, response_format, model, markdown):
-    role_styles = {
-        "system": "[bold cyan]System Message",
-        "user": "[bold green]User Message",
-        "assistant": f"[bold yellow]{model}: Response",
-        "token": "[bold magenta]Token Usage",
-        "flashcard": "[bold orange]Flashcards",
-    }
-
-    rule = role_styles.get(role.lower(), f"[bold]{role} Message")
-    console.rule(rule)
-
-    if markdown and isinstance(content, str):
-        console.print("\n", Markdown(content), "\n")
-        return
-
-    if role.lower() == "token":
-        print("\n")
-        pprint(content, expand_all=True)
-        print("\n")
-        return
-
-    if role.lower() == "assistant":
-        text_content = response_format.model_validate_json(content)
-        pprint(text_content)
-        return
-
-    if role.lower() == "flashcard":
-        pprint(content)
-        return
-
-    console.print("\n", content, "\n")
-
-
-def append_message(role, response, messages):
-    message = {"role": role.lower(), "content": response}
-    messages.append(message)
-
-
 def fill_data_fields(flashcard_obj, file_name, file_type):
-    for fc in flashcard_obj:
+    for fc in flashcard_obj.flashcards:
         fc.data.image = file_name if file_type == "image" else ""
         fc.data.external_source = file_name if file_type != "image" else ""
         fc.data.external_page = 1
@@ -167,7 +111,7 @@ def generate_flashcards(collection_media_path, file_type, file_name, file_conten
             file_name,
             file_type
         )
-        print_message(
+        utils.print_message(
             "problem_flashcards",
             problem_flashcard_model,
             response_format=None,
@@ -179,39 +123,42 @@ def generate_flashcards(collection_media_path, file_type, file_name, file_conten
             template_name="AnkiConnect: Problem",
         )
     else:
-        concept_map_response = handle_completion(
-            prompts.CONCEPT_MAP_PROMPT,
-            file_contents,
-            prompts.TEXT_FORMAT,
-            file_type,
-            run_as_image=True
-        )
-        draft_concepts_list_prompt = prompts.CONCEPTS_LIST_PROMPT.format(
+        if file_type.lower() == "text":
+            concept_map_response = handle_completion(
+                prompts.CONCEPT_MAP_PROMPT,
+                file_contents,
+                prompts.TEXT_FORMAT,
+                file_type
+            )
+            utils.create_pdf_from_markdown(
+                collection_media_path,
+                file_name,
+                concept_map_response
+            )
+        else:
+            concept_map_response = handle_completion(
+                prompts.CONCEPT_MAP_PROMPT,
+                file_contents,
+                prompts.TEXT_FORMAT,
+                file_type,
+                run_as_image=True
+            )
+        concepts_list_prompt = prompts.CONCEPTS_LIST_PROMPT.format(
             tags=tags
         )
-        draft_concepts_list_response = handle_completion(
-            draft_concepts_list_prompt,
+        concepts_list_response = handle_completion(
+            concepts_list_prompt,
             concept_map_response,
             models.Concepts,
             file_type
         )
-        absent_prompt = prompts.ABSENT_PROMPT.format(
-            tags=tags,
-            source_material=concept_map_response
-        )
-        final_concepts_list_response = handle_completion(
-            absent_prompt,
-            draft_concepts_list_response,
-            models.Concepts,
-            file_type
-        )
-        concepts_list = parse_llm_response(
-            final_concepts_list_response
+        concepts_list = utils.parse_llm_response(
+            concepts_list_response
         )
         draft_flashcard_response = handle_completion(
             prompts.DRAFT_FLASHCARD_PROMPT,
             f"""
-            #### list of each concept item to be addressed, along with the relevant additional information for each item:
+            #### List of each concept item to be addressed and extra necessary information:
             {concepts_list}
             """,
             models.Flashcard,
@@ -220,10 +167,7 @@ def generate_flashcards(collection_media_path, file_type, file_name, file_conten
         final_flashcard_response = handle_completion(
             prompts.FINAL_FLASHCARD_PROMPT,
             f"""
-            #### List of each concept item to be addressed, along with the relevant additional information for each item:
-            {concepts_list}
-            ------
-            #### The first draft of flashcards created from the list of concepts:
+            #### The first draft of flashcards:
             {draft_flashcard_response}
             """,
             models.Flashcard,
@@ -237,19 +181,13 @@ def generate_flashcards(collection_media_path, file_type, file_name, file_conten
             file_name,
             file_type
         )
-        print_message(
+        utils.print_message(
             "flashcard",
             concept_flashcard_model.flashcards,
             response_format=None,
             model=None,
             markdown=False
         )
-        if file_type.lower() == "text":
-            processor.create_pdf_from_markdown(
-                collection_media_path,
-                file_name,
-                concept_map_response
-            )
         importer.add_flashcards_to_anki(
             concept_flashcard_model,
             template_name="AnkiConnect: Basic",

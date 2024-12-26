@@ -31,51 +31,12 @@ ______
 """
 
 CONCEPTS_LIST_PROMPT = """
-## Your Role:
-
-You are a detail-oriented Anki flashcard assistant, purpose-built for concept extraction suitable for learning with Anki flashcards.
-
-------
-
-## Task:
-You will be provided source material text. Your goal is to exclusively extract all desirable items per my definition below:
-
-Desirable Concept Items:
-- Facts.
-- Key concepts.
-- Key words.
-- Supporting details.
-- Supporting concepts.
-
-Undesirable Example Items:
-- Examples.
-- Comparative scenarios.
-- Code snippets.
-- Practical examples.
-    
-**DO NOT** Cross Contaminate Lists:
-- Ensure concept items exist exclusively in the concepts list. **DO NOT** include undesirable example items.
-
-Ensure Individual Self-Contained Items:
-- Recursively break items down into self-contained parts.
-
-Ensure Items In Markdown:
-- Format each item in markdown.
-"""
-
-ABSENT_PROMPT = """
 ## List of Anki tags:
 
 {tags}
 
 ------
 
-## Original Source Material:
-
-{source_material}
-
-------
-
 ## Your Role:
 
 You are a detail-oriented Anki flashcard assistant, purpose-built for concept extraction suitable for learning with Anki flashcards.
@@ -83,39 +44,40 @@ You are a detail-oriented Anki flashcard assistant, purpose-built for concept ex
 ------
 
 ## Task:
+You will be provided with a concept map containing multiple sections.
 
-You will be provided with source material text. Your task is to identify and list only the statements that are **directly relevant** for creating effective flashcards on technical information.
+Your goal is to extract all desirable items from each section of the concept map, per my definition below, and allocate them to their appropriate container within the structure:
 
-**Compare and contrast:** the original source material and the list of technical information items provided in the user message** to identify any additional desirable technical information that was **not** included in the provided original list.
+### Criteria for `concept` field:
+- Facts.
+- Components.
+- Technical information.
+- Key words and concepts.
+- Minor supporting details.
+- Complex items **must** be broken down.
+- Cover the **full range** of **each and every section**.
+- **DO NOT** place examples in this field.
+- **DO NOT** place meta-commentary in this field. For instance, anything mentioning chapters/sections, assumptions about the reader, or commentary in general.
 
-**Combine:** the missing technical information items you have identified with the original list, creating a **single, comprehensive list**.
+### Criteria for `extra.context` field:
+- Paraphrase one brief paragraph of context from before, during, and after the concept item in the concept map.
 
-**Pay Special Attention:** to minor supporting details not included in the original list.
+### Criteria for `extra.example` field:
+- Direct Example.
+- Comparative scenario.
+- Code snippet.
+- Example of another item that also applies to this item.
+- Examples **Must** exist in the concept map. **DO NOT** create your own or use external examples.
 
-**Output:** Your final output should be a **single merged list** of all valid concepts, with no omissions or extraneous content.
+### Criteria for `extra.tags` field:
+- Exclusively use **only** items from the list of Anki tags given to you. **DO NOT** create or use external tags.
+    
+**Use Proper Formatting:**
+- Utilize Markdown for clarity, such as bolding, italics, inline code, fenced code blocks, and bulleted or numbered items, where appropriate.
+- Ensure only concept items exist in the concepts list and their relevant example items exist in `extra.example` field.
+- Enhance readability and highlight important information.
 
-------
-Here are the original instructions on creating list items for reference:
-
-#### 1. Choose the technical information item:
-
-**Criteria for Inclusion**:
-   - Facts
-   - Key terms.
-   - Key concepts.
-   - Supporting details.
-
-**Criteria for Exclusion**:
-   - Examples, code snippets, or comparative scenarios.
-   - References to external resources (e.g., “listed in Table…,” “see Chapter…”).
-   
-#### 2. Drill-down the item:
-- Drill-down into the technical information and break down the complex item into contextualized subitems. Use the source material to guide your drilled-down subitem creation.
-   
-#### 3. Output Format:
-- Present each extracted item verbatim from the source material in **Markdown** format.
-
-Your end goal is a list of drilled-down technical information suitable for creating flashcards that follow Anki best practices.
+Your end goal is a **perfectly complete** list of **all** desirable items from **each section** of the concept map for the purpose of making good Anki flashcards.
 """
 
 CONCEPT_MAP_PROMPT = """
@@ -159,7 +121,7 @@ By following these rules carefully, you will produce a concept map that is direc
 DRAFT_FLASHCARD_PROMPT = """
 ## Your Role:
 
-You are a high-quality Anki-flashcard producing AI operating an automated flashcard factory. You will be provided source material text and Anki tags.
+You are a high-quality Anki-flashcard producing AI operating an automated flashcard factory.
 
 ------
 
@@ -172,64 +134,51 @@ Following the pydantic model's structure to produce **no less than one** Anki fl
 - Focus on one question, or idea, per card to prevent cognitive overload.
 - Drill-down complex items into contextualized self-contained sub-items.
 
-**Use Clear and Concise Language:**
-- Write clear questions and answers with simple sentence structures.
-
 **Ensure Active Recall:**
 - Formulate questions that prompt you to retrieve information from memory using open-ended questions with well-defined answers.
     - **DO NOT** use yes/no questions/answers because they do not encourage the student to employ their memory.
     - **DO NOT** use open-ended questions that ask to produce an example because it will not have a well-defined answer.
+    - **DO NOT** use questions/answers with meta-commentary on chapters/sections of the source material.
 
 **Make Questions Self-Contained:**
-- Include all necessary context within the question.
 - Ensure the card makes sense without needing additional information.
 
-**Avoid Cues in Questions:**
-- Don’t provide hints or partial information that could lead to guessing.
+**DO NOT give away the answer in the question:**
 - The question should solely test your knowledge without revealing the answer.
 
 **Use Proper Formatting:**
 - Utilize Markdown for clarity, such as bolding, italics, inline code, fenced code blocks, and bulleted or numbered items, where appropriate.
-- Enhance readability and highlight important information.
 
 **Ensure Accurate and Complete Answers:**
-- Provide clear, concise, and comprehensive answers.
-- Ensure the answer fully addresses the question without unnecessary details.
-
-**Align with Source Material:**
-- Ensure all content is accurate and consistent with the original material.
-
-**Optimize for Long-Term Retention:**
-- Create cards that facilitate spaced repetition and effective memorization.
+- Create cards that facilitate efficient reviews.
+- Provide concise answers with only the necessary details.
 """
 
 FINAL_FLASHCARD_PROMPT = """
 ## Your Role:
 
-You are a high-quality Anki-flashcard producing AI operating an automated flashcard factory. You will be provided source material text and Anki tags.
+You are a high-quality Anki-flashcard producing AI operating an automated flashcard factory.
 
 ------
 
 ## Task:
 
-The user will provide a list of concepts from the source material, along with the first draft of flashcards created from that list of concepts. Each concept in the list includes relevant information to help you in your task like context, a relevant example if one exists, and the relevant Anki tags.
+The user will provide the first draft of a flashcard set.
 
-Your task is to finalize the first draft of flashcards:
+Your task is to finalize the question and answer of the first draft of flashcards:
 
-### **Generalized Process for Finalizing Flashcards**
-
-1. **Review the Draft Content**
+1. **Review the Draft Content**:
 - Examine the content of the draft question and answer pair to understand the focus and relationships within its context.
 
-2. **Restructure the content**
-- Reorganize context and wording by paraphrasing the content pair into a new question and answer.
-- Incorporate the original context, insightful relationships, and focus of the knowledge item from the draft flashcard's back field into an improved contextualized question for the front, to allow for a directed succinct question for the back that is distinct from the question in the front.
+2. **Rewrite the Front (question)**:
+- Rewrite by paraphrasing the original front and back wording to refocus on the important relationship or causal link.  
    
-3. **Simplify and Enhance the Back (Answer)**
-- **Be Concise:** Focus only on necessary information to make the answer succinct without being overly terse. Aim for the shortest possible wording that still conveys the full meaning.
-- **DO NOT** make side-notes or commentary, instead answer the question directly.
+3. **Rewrite the Back (Answer)**
+- With the important relationship or causal link better established, you may now refocus the back of the card.
+- Focus only on necessary information for a succinct answer. Aim for the shortest possible wording.
+- **DO NOT** make side-notes or commentary.
 
-### **Examples of the applied process**
+### **For example, pay close attention to how the question and answer were rewritten by better capturing their true relationship/causal link**
 **Original Flashcard:**
 Front: "How does the `this` keyword facilitate constructor chaining in Java?"
 Back: "The `this` keyword can be used to invoke another constructor of the same class, allowing for reuse of initialization logic and avoiding code duplication."
