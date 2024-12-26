@@ -181,8 +181,8 @@ def get_notes(flashcards_model, template_name, deck_name):
             fields["Space Explanation"] = fc.space_explanation
         else:
             fields["Header"] = flashcards_model.header
-            fields["Front"] = fc.content.front
-            fields["Back"] = fc.content.back
+            fields["Front"] = fc.front
+            fields["Back"] = fc.back
             fields["Example"] = fc.example
 
         note = {

@@ -8,38 +8,22 @@ class Data(BaseModel):
 
 
 class Extra(BaseModel):
-    context: str = Field(
-        description="In one comprehensive paragraph, paraphrase the context before and after the current concept in the source material without sacrificing the original terminology."
-    )
-    example: str = Field(
-        description=(
-            """
-            **Please select the most accurate applicable code snippet, example, or comparative scenario concretely illustrates the concept:**
-            - **Must exist** in the source material.
-            - **Can be from any context** in the source material as long as it clearly applies to the current concept.
-            - **If nothing clearly applies** fill this field with an empty string to maintain structure.
-            - **Format in markdown**, especially the appropriate code block fencing for code snippets.
-            """
-        )
-    )
-    tags: List[str] = Field(
-        description=(
-            """
-            A list of applicable Anki tags that reflect the hierarchy of knowledge and are selected exclusively from the given list of Anki tags.
-            **DO NOT** create new tags that are absent from the given list of tags.
-            **DO NOT** use external tags.
-            """
-        )
-    )
+
     model_config = ConfigDict(extra='forbid')
 
 
 class ConceptItem(BaseModel):
-    concept: str = Field(
-        description="The current concept item cited verbatim."
+    context: str = Field(
+        description="One comprehensive paragraph of context for the concept item."
     )
-    extra: Extra = Field(
-        description="Contains all relevant information about the concept from the source material, including its context, an example if applicable, and the relevant list of Anki tags."
+    concept: str = Field(
+        description="The current concept item cited verbatim from the source material."
+    )
+    example: str = Field(
+        description="The applicable example formatted in markdown with code block fencing for code snippets."
+    )
+    tags: List[str] = Field(
+        description="The list of Anki tags."
     )
     model_config = ConfigDict(extra='forbid')
 
@@ -51,54 +35,32 @@ class Concepts(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
-class Content(BaseModel):
+class FlashcardItem(BaseModel):
     front: str = Field(
-        description=(
-            """
-            Paraphrase a clear and effective question that tests recall of the current concept item, in markdown format, by following the Anki best practices provided to you.
-            """
-        )
+        description="The question."
     )
     back: str = Field(
-        description=(
-            """
-            Paraphrase a direct and concise answer to the question that tests recall of the current concept item in markdown by following the Anki best practices provided to you.
-            Ensure the answer is fully consistent with the source material, does not repeat parts of the question, and stands on its own. 
-            """
-        )
-    )
-    model_config = ConfigDict(extra='forbid')
-
-
-class FlashcardItem(BaseModel):
-    content: Content = Field(
-        description="The container for the finalized question and answer that test the key concept, carefully derived from the source material."
+        description="The answer."
     )
     example: str = Field(
-        description="The contents of the example field within the current concept's `extra` field. Represents the source material example tied to the current concept item, if one existed, otherwise an empty string "" for structural consistency."
+        description="The example."
     )
     data: Data
     tags: List[str] = Field(
-        description = "The contents of the tags field within the current concept's `extra` field. Represents the relevant list of Anki tags chosen for the current concept item."
+        description="The Anki tags."
     )
     model_config = ConfigDict(extra='forbid')
 
 
 class Flashcard(BaseModel):
+    flashcards: List[FlashcardItem] = Field(
+        description="A list of flashcards derived from concept items."
+    )
     header: str = Field(
         description=(
             """
-            Develop an accurate and succinct title in markdown. The title should follow the format `BroadTopic: SpecificConcept` (e.g., 'Java: Identifiers'). 
-            Ensure the title directly references the information in the current list of concepts by being relevant, specific, and adherent to the source material's terminology.
+            Describe the flashcards list using an accurate and succinct title in markdown format that follows the structure `BroadTopic: SpecificConcept` (e.g., 'Java: Identifiers'). 
             **DO NOT** use Anki tags or Anki tag formating to create the title.
-            """
-        )
-    )
-    flashcards: List[FlashcardItem] = Field(
-        description=(
-            """
-            A list of flashcards derived from each and every single concept item in the list of concepts by following the provided Anki best practices for flashcards.
-            Each FlashcardItem must reflect a crucial aspect of the concept, with well-formed front/back, source material example, and accurate Anki tags that best represent the item.
             """
         )
     )
