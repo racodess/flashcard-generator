@@ -1,7 +1,7 @@
 import sys
 
 from rich.console import Console
-from rich.pretty import Pretty
+from rich.pretty import Pretty, pprint
 
 import importer
 import models
@@ -158,7 +158,7 @@ def generate_flashcards(collection_media_path, file_type, file_name, file_conten
         draft_flashcard_response = handle_completion(
             prompts.DRAFT_FLASHCARD_PROMPT,
             f"""
-            #### List of each concept item to be addressed and extra necessary information:
+            #### List of each concept item to be addressed:
             {concepts_list}
             """,
             models.Flashcard,
