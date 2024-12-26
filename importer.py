@@ -159,9 +159,9 @@ def get_notes(flashcards_model, template_name, deck_name):
     notes = []
     for fc in flashcards_model.flashcards:
         fields = {
-            "Image": fc.image,
-            "external_source": fc.external_source,
-            "external_page": str(fc.external_page),
+            "Image": fc.data.image,
+            "external_source": fc.data.external_source,
+            "external_page": str(fc.data.external_page),
         }
         if isinstance(fc, models.ProblemFlashcardItem):
             fields["Header"] = fc.header
@@ -181,9 +181,9 @@ def get_notes(flashcards_model, template_name, deck_name):
             fields["Space Explanation"] = fc.space_explanation
         else:
             fields["Header"] = flashcards_model.header
-            fields["Front"] = fc.front,
-            fields["Back"] = fc.back,
-            fields["Example"] = fc.example,
+            fields["Front"] = fc.content.front
+            fields["Back"] = fc.content.back
+            fields["Example"] = fc.example
 
         note = {
             "deckName": deck_name,
