@@ -98,7 +98,7 @@ def process_directory_recursive(current_directory, used_dir):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python utils.py <directory_path>")
+        print("Usage: python main.py <directory_path>")
         sys.exit(1)
 
     DIRECTORY_PATH = sys.argv[1]
