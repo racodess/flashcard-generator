@@ -112,8 +112,6 @@ def create_pdf_from_markdown(collection_media_path, file_name, text_markdown):
     os.makedirs(pdf_folder, exist_ok=True)
     pdf_path = os.path.join(pdf_folder, f"{file_name}.pdf")
 
-    print(text_markdown)
-
     html_content = markdown2.markdown(
         text_markdown,
         extras=[
