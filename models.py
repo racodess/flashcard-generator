@@ -1,3 +1,13 @@
+"""
+Purpose:
+
+- Contains Pydantic classes (`Flashcard`, `ProblemFlashcard`, etc.) that define the JSON schema for structured output from OpenAI API calls.
+
+
+**Important Note:**
+
+- Requires the use of client.beta.chat.completions.parse from the OpenAI API.
+"""
 from typing import List, Literal
 from pydantic import BaseModel, Field, ConfigDict, ValidationError
 
@@ -20,10 +30,10 @@ class ConceptItem(BaseModel):
         description="The current concept item cited verbatim from the source material."
     )
     example: str = Field(
-        description="The applicable example formatted in markdown with code block fencing for code snippets."
+        description="The applicable example (formatted in markdown with code block fencing for code snippets) that **must exist** and is reproduced verbatim as it appears in the concept map. **DO NOT** create your own examples. **DO NOT** use external examples."
     )
     tags: List[str] = Field(
-        description="The list of Anki tags."
+        description="The list of Anki tags. **DO NOT** create your own tags. **DO NOT** use external tags."
     )
     model_config = ConfigDict(extra='forbid')
 
@@ -47,7 +57,7 @@ class FlashcardItem(BaseModel):
     )
     data: Data
     tags: List[str] = Field(
-        description="The Anki tags."
+        description="The Anki tags chosen exclusively from the list of Anki tags provided in the prompt."
     )
     model_config = ConfigDict(extra='forbid')
 

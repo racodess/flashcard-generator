@@ -1,3 +1,8 @@
+"""
+Purpose:
+
+- Contains large strings for LLM system prompts. Possibly placeholders like `{tags}`, which get filled in by `create_system_message(...)`.
+"""
 TEXT_FORMAT = {"type": "text"}
 
 PLACEHOLDER_MESSAGE = "See below for assistant's response:"
@@ -68,7 +73,7 @@ Your goal is to extract all desirable items from each bullet of the concept map 
 - Custom examples.
 - Comparative scenarios.
 - Code snippets.
-- If no example exists for a concept, create your own very simple example.
+- All extracted examples **must exist** in the concept map. **DO NOT** create your own examples. **DO NOT** use external examples.
 
 ### Criteria for `tags` field:
 - Use **all broad and specific** Anki tags that reflect the hierarchy of knowledge for the current concept.
@@ -95,7 +100,7 @@ You will be provided with source material text. Your job is to think step-by-ste
 1. **Content Requirements**  
     - Focus exclusively on concepts (substantive principles, technical information, and supporting details) instead of the source material's meta-commentary or organizational structure.
     - Provide a thorough breakdown of each concept, including **all** details, comparative scenarios, code snippets, and practical examples **as they appear** in the source material.  
-    - You may create simple examples in a similar vein to the source material's other examples.
+    - All extracted examples **must exist** in the source material. **DO NOT** create your own examples. **DO NOT** use external examples.
     - Textual artifacts from PDFs or other sources (e.g., code playground buttons) **must be ignored**. Focus exclusively on the actual content, especially valid code snippets.
     - **DO NOT** mention meta-commentary, or the organizational structure (e.g., “In the next chapter…”, "In figure 1.2", "In a later section").  
 

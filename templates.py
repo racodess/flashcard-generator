@@ -1,7 +1,13 @@
+"""
+Purpose:
+
+- Contains the HTML or CSS markup used by Anki "note types" (flashcard templates).
+"""
 BASIC_CARD_NAME = "AnkiConnect: Basic"
 
 PROBLEM_CARD_NAME = "AnkiConnect: Problem"
 
+# TODO: Add URL field
 BASIC_TEMPLATE_FIELDS = [
     "Header",
     "Front",
@@ -12,6 +18,7 @@ BASIC_TEMPLATE_FIELDS = [
     "external_page"
 ]
 
+# TODO: Add URL field
 PROBLEM_TEMPLATE_FIELDS = [
     "Header",
     "Problem",
