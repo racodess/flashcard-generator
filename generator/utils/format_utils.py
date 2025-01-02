@@ -15,7 +15,7 @@ from weasyprint import HTML, CSS
 import pygments
 
 from flashcard_logger import logger
-from templates import ADDITIONAL_CSS
+from generator.importer.templates import ADDITIONAL_CSS
 
 
 def get_img_uri(img: Image.Image) -> str:

@@ -9,7 +9,7 @@ from enum import Enum
 from rich.console import Console
 from generator.utils.utils import logger
 from openai import OpenAI
-import prompts
+from generator.openai import prompts
 
 """
 OpenAI LLM references:

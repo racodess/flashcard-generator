@@ -23,13 +23,13 @@ from rich.console import Console
 import models
 import prompts
 from generator.importer import importer
-from generator.utils.utils import format_utils, file_utils, utils
-from generator.utils.utils import (
+from generator.utils import format_utils, file_utils, utils
+from generator.utils.llm_utils import (
     PromptType,
     create_system_message,
     call_llm
 )
-from generator.utils.utils import logger
+from generator.utils.flashcard_logger import logger
 from generator.utils.scraper import fetch_and_parse_url, extract_text_from_item
 
 console = Console()

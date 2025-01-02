@@ -19,8 +19,8 @@ import html
 import json
 import urllib.request
 
-from generator.utils.utils import logger
-import models
+from generator.utils.flashcard_logger import logger
+from generator.openai import models
 import templates
 
 

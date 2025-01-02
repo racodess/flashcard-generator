@@ -11,7 +11,7 @@ from rich.markdown import Markdown
 from rich.pretty import pprint
 from rich.console import Console
 
-from generator.utils.utils import logger
+from generator.utils.flashcard_logger import logger
 
 console = Console()
 
