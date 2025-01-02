@@ -16,8 +16,8 @@ from pdf2image import convert_from_path
 # TODO: Currently unused (intentional)
 from pdfminer.high_level import extract_text
 
-from flashcard_logger import logger
-import format_utils
+from generator.utils.flashcard_logger import logger
+from generator.utils import format_utils
 
 class UnsupportedFileTypeError(Exception):
     """Raised when encountering an unsupported file type."""

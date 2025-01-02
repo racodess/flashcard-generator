@@ -20,7 +20,7 @@ from rich.console import Console
 
 from generator.utils import file_utils
 from generator.utils.flashcard_logger import logger
-from generator.openai.generator import generate_flashcards
+from generator.openai.openai_generator import generate_flashcards
 
 console = Console()
 
@@ -87,7 +87,7 @@ def process_file(file_path, context):
      2. Copy it into Anki’s media folder,
      3. Determine the file’s “content type” (image, PDF, text, etc.) via `file_utils.get_content_type(...)`,
      4. Figure out the flashcard “type” (e.g., if the file is in a `problem_solving` subfolder, set `flashcard_type='problem'`),
-     5. Finally, call `generate_flashcards(...)` from `generator.py`.
+     5. Finally, call `generate_flashcards(...)` from `openai_generator.py`.
     """
     # 1. Move file to used-files
     new_file_path = move_file(file_path, context['used_dir'], context)

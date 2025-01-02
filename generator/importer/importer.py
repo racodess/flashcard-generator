@@ -21,7 +21,7 @@ import urllib.request
 
 from generator.utils.flashcard_logger import logger
 from generator.openai import models
-import templates
+from generator.importer import templates
 
 
 def _request(action, **params):

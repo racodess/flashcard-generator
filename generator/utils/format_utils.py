@@ -14,7 +14,7 @@ from weasyprint import HTML, CSS
 # used by weasyprint
 import pygments
 
-from flashcard_logger import logger
+from generator.utils.flashcard_logger import logger
 from generator.importer.templates import ADDITIONAL_CSS
 
 

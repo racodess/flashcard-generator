@@ -6,10 +6,13 @@ Purpose:: provide a single place to:
 - Handle structured responses using OpenAI API.
 """
 from enum import Enum
+
 from rich.console import Console
-from generator.utils.utils import logger
-from openai import OpenAI
+
+from generator.utils.flashcard_logger import logger
 from generator.openai import prompts
+
+from openai import OpenAI
 
 """
 OpenAI LLM references:

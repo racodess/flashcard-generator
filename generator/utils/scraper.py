@@ -144,7 +144,7 @@ def parse_headings_to_tree(soup) -> list:
 def extract_text_from_item(item: dict) -> str:
     """
     - Recursively accumulates all textual content from headings & sub-elements, returning a single large text string.
-    - This is used by `generator.py` to feed textual content into the LLM.
+    - This is used by `openai_generator.py` to feed textual content into the LLM.
     """
     if item.get("type") == "element":
         # Return the element content as plain text
