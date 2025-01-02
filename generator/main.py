@@ -18,9 +18,9 @@ import shutil
 
 from rich.console import Console
 
-import file_utils
-from flashcard_logger import logger
-from generator import generate_flashcards
+from generator.openai.generator import file_utils
+from generator.openai.generator import logger
+from generator.openai.generator import generate_flashcards
 
 console = Console()
 

@@ -19,7 +19,7 @@ import html
 import json
 import urllib.request
 
-from flashcard_logger import logger
+from generator.utils.utils import logger
 import models
 import templates
 

@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from trafilatura import fetch_url, extract
 from trafilatura.settings import Extractor
 
-from flashcard_logger import logger
+from generator.utils.utils import logger
 
 
 def fetch_and_parse_url(url: str) -> dict:

@@ -20,19 +20,17 @@ import os
 
 from rich.console import Console
 
-import utils
 import models
 import prompts
-import importer
-import file_utils
-import format_utils
-from llm_utils import (
+from generator.importer import importer
+from generator.utils.utils import format_utils, file_utils, utils
+from generator.utils.utils import (
     PromptType,
     create_system_message,
     call_llm
 )
-from flashcard_logger import logger
-from scraper import fetch_and_parse_url, extract_text_from_item
+from generator.utils.utils import logger
+from generator.utils.scraper import fetch_and_parse_url, extract_text_from_item
 
 console = Console()
 

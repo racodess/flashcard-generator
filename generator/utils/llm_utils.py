@@ -7,7 +7,7 @@ Purpose:: provide a single place to:
 """
 from enum import Enum
 from rich.console import Console
-from flashcard_logger import logger
+from generator.utils.utils import logger
 from openai import OpenAI
 import prompts
 
