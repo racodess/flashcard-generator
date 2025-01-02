@@ -20,8 +20,8 @@ import os
 
 from rich.console import Console
 
-import models
-import prompts
+from generator.openai import models
+from generator.openai import prompts
 from generator.importer import importer
 from generator.utils import format_utils, file_utils, utils
 from generator.utils.llm_utils import (
