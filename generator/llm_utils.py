@@ -5,7 +5,6 @@ Purpose:: provide a single place to:
 - Build the “system” and “user” messages for the LLM,
 - Handle structured responses using OpenAI API.
 """
-import os
 from enum import Enum
 from rich.console import Console
 from flashcard_logger import logger
