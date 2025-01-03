@@ -23,7 +23,7 @@ from rich.console import Console
 from generator.openai import models
 from generator.openai import prompts
 from generator.importer import importer
-from generator.utils import format_utils, file_utils, utils
+from generator.utils import format_utils, file_utils
 from generator.utils.llm_utils import (
     PromptType,
     create_system_message,
@@ -101,7 +101,7 @@ def generate_flashcards(
         # Intended for URLs containing text content, not remote resources (e.g. img, pdf)
         webpage_data = fetch_and_parse_url(url)
         if not webpage_data:
-            logger.warning("\nNo data returned from URL:\n %s. Skipping flashcard generation.\n\n", url)
+            logger.warning("No data returned from URL: %s. Skipping flashcard generation.", url)
             return
 
         sections = webpage_data.get("sections", [])
@@ -113,26 +113,26 @@ def generate_flashcards(
         file_content = "\n\n".join(lines)
 
         if not file_content.strip():
-            logger.warning("\nNo textual content found for URL\n: %s\n\n", url)
+            logger.warning("No textual content found for URL: %s", url)
             return
     elif file_path:
         # Identify content type from file, read data
         detected_type = file_utils.get_content_type(file_path, url=None)
         if detected_type == 'unsupported':
-            logger.warning("\nUnsupported file type:\n %s. Skipping flashcard generation.\n\n", file_path)
+            logger.warning("Unsupported file type: %s. Skipping flashcard generation.", file_path)
             return
 
         content_type = detected_type.lower()
         try:
             file_content = file_utils.process_data(file_path, content_type)
         except file_utils.UnsupportedFileTypeError as e:
-            logger.warning("\nUnsupported file type error:\n %s\n\n", e)
+            logger.warning("Unsupported file type error: %s", e)
             return
         except Exception as e:
-            logger.error("\nError reading file %s:\n %s\n\n", file_path, e)
+            logger.error("Error reading file %s: %s", file_path, e)
             return
     else:
-        logger.error("\nNeither file_path nor url provided to generate_flashcards.\n\n")
+        logger.error("Neither file_path nor url provided to generate_flashcards.")
         return
 
     # Identify the source name
@@ -141,6 +141,9 @@ def generate_flashcards(
     # Step 2: If 'problem' -> Problem-solving flow
     if flashcard_type == 'problem':
         # ----- Problem-solving-based flow -----
+
+        # Delimiter for next set of input & output
+        console.rule("Running PROBLEM_FLASHCARD Prompt from Problem-solving Flow")
 
         # Build system message for problem flashcards
         system_message = create_system_message(PromptType.PROBLEM_FLASHCARD, tags=tags)
@@ -162,11 +165,14 @@ def generate_flashcards(
         fill_data_fields(problem_flashcard_model, source_name, content_type)
 
         # Print & import to Anki
-        utils.print_message("problem_flashcards", problem_flashcard_model, None, None, markdown=False)
+        format_utils.print_message("problem_flashcards", problem_flashcard_model, None, None, markdown=False)
         importer.add_flashcards_to_anki(problem_flashcard_model, template_name="AnkiConnect: Problem")
 
     else:
         # ----- Concept-based flow -----
+
+        # Delimiter for next set of input & output
+        console.rule("Running CONCEPT_MAP Prompt from Concepts Flow")
 
         # 1) Generate a concept map from the source material
         system_message = create_system_message(PromptType.CONCEPT_MAP)
@@ -182,6 +188,9 @@ def generate_flashcards(
         if content_type in ["text"]:
             format_utils.create_pdf_from_markdown(anki_media_path, source_name, concept_map_response)
 
+        # Delimiter for next set of input & output
+        console.rule("Running CONCEPT_LIST Prompt from Concepts Flow")
+
         # 3) Extract list of concept items from the concept map
         system_message = create_system_message(PromptType.CONCEPT_LIST, tags=tags)
         concepts_list_response = call_llm(
@@ -190,7 +199,10 @@ def generate_flashcards(
             response_format=models.Concepts,
             content_type=content_type
         )
-        concepts_list = utils.parse_concepts_list_response(concepts_list_response)
+        concepts_list = format_utils.parse_concepts_list_response(concepts_list_response)
+
+        # Delimiter for next set of input & output
+        console.rule("Running DRAFT_FLASHCARD Prompt from Concepts Flow")
 
         # 4) Draft set of flashcards
         system_message = create_system_message(PromptType.DRAFT_FLASHCARD)
@@ -200,6 +212,9 @@ def generate_flashcards(
             response_format=models.Flashcard,
             content_type=content_type
         )
+
+        # Delimiter for next set of input & output
+        console.rule("Running FINAL_FLASHCARD Prompt from Concepts Flow")
 
         # 5) Final set of flashcards with optimized wording
         system_message = create_system_message(PromptType.FINAL_FLASHCARD)
@@ -214,7 +229,7 @@ def generate_flashcards(
         fill_data_fields(concept_flashcard_model, source_name, content_type)
 
         # Display finalized flashcards to terminal
-        utils.print_message("flashcard", concept_flashcard_model.flashcards, None, None, markdown=False)
+        format_utils.print_message("flashcard", concept_flashcard_model.flashcards, None, None, markdown=False)
 
         # Import finalized flashcards to Anki
-        importer.add_flashcards_to_anki(concept_flashcard_model, template_name="AnkiConnect: Basic")
+        # importer.add_flashcards_to_anki(concept_flashcard_model, template_name="AnkiConnect: Basic")
