@@ -1,13 +1,17 @@
 """
 Purpose:
 
-- Determining file type from the extension,
-- Reading the file content accordingly: text, JSON, images, PDF,
-- Converting PDFs to images (using `pdf2image.convert_from_path`),
-- Handling unsupported file types with a custom `UnsupportedFileTypeError`.
+- File utilities:
+    - Determining file type from the extension
+    - Reading the file content accordingly: text, JSON, images, PDF
+    - Converting PDFs to images (using `pdf2image.convert_from_path`)
+    - Base64 encoding of Images as required by the OpenAI API
+    - Handling unsupported file types with a custom `UnsupportedFileTypeError`
 """
 import os
+import io
 import json
+import base64
 from PIL import Image
 
 # TODO: Currently handles all PDFs (intentional)
@@ -17,7 +21,6 @@ from pdf2image import convert_from_path
 from pdfminer.high_level import extract_text
 
 from generator.utils.flashcard_logger import logger
-from generator.utils import format_utils
 
 class UnsupportedFileTypeError(Exception):
     """Raised when encountering an unsupported file type."""
@@ -57,13 +60,25 @@ def process_data(file_path: str, content_type: str):
     """
     read_func = READ_DISPATCH.get(content_type)
     if not read_func:
-        raise UnsupportedFileTypeError(f"\nUnsupported file type:\n {content_type}\n\n")
+        raise UnsupportedFileTypeError(f"Unsupported file type: {content_type}")
 
     try:
         return read_func(file_path)
     except Exception as e:
-        logger.error("\nError processing file %s as %s:\n %s\n\n", file_path, content_type, e)
+        logger.error("Error processing file %s as %s: %s", file_path, content_type, e)
         raise
+
+
+def get_img_uri(img: Image.Image) -> str:
+    """
+    - Takes a PIL Image, writes it to an in-memory buffer as PNG, base64-encodes it, and returns the base64 string.
+    - This is used by `file_utils` to handle images.
+    """
+    png_buffer = io.BytesIO()
+    img.save(png_buffer, format="PNG")
+    png_buffer.seek(0)
+    base64_png = base64.b64encode(png_buffer.read()).decode('utf-8')
+    return f"{base64_png}"
 
 
 """
@@ -86,13 +101,13 @@ def read_json_file(file_path: str):
 
 def read_image_file(file_path: str) -> str:
     img = Image.open(file_path)
-    return format_utils.get_img_uri(img)
+    return get_img_uri(img)
 
 
 def read_pdf_file(file_path: str) -> str:
     images = convert_doc_to_images(file_path)
     if images:
-        return format_utils.get_img_uri(images[0])
+        return get_img_uri(images[0])
     return ""
 
 

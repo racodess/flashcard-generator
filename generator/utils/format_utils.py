@@ -1,33 +1,28 @@
 """
 Purpose:
 
-- Formatting and conversion utilities.
+- Formatting utilities:
+    - Generating PDF from information plain text .txt files that DO NOT contain URLs
+    - Parsing list of concepts required in flashcard generation pipeline
+    - Printing messages
 """
+import logging
 import os
-import io
-import base64
-from PIL import Image
+import json
+
+from rich.markdown import Markdown
+from rich.pretty import pprint
+from rich.console import Console
 
 import markdown2
 from weasyprint import HTML, CSS
-
 # used by weasyprint
 import pygments
 
 from generator.utils.flashcard_logger import logger
 from generator.importer.templates import ADDITIONAL_CSS
 
-
-def get_img_uri(img: Image.Image) -> str:
-    """
-    - Takes a PIL Image, writes it to an in-memory buffer as PNG, base64-encodes it, and returns the base64 string.
-    - This is used by `file_utils` to handle images.
-    """
-    png_buffer = io.BytesIO()
-    img.save(png_buffer, format="PNG")
-    png_buffer.seek(0)
-    base64_png = base64.b64encode(png_buffer.read()).decode('utf-8')
-    return f"{base64_png}"
+console = Console()
 
 
 def create_pdf_from_markdown(collection_media_path: str, file_name: str, text_markdown: str) -> None:
@@ -54,6 +49,70 @@ def create_pdf_from_markdown(collection_media_path: str, file_name: str, text_ma
             pdf_path,
             stylesheets=[CSS(string=ADDITIONAL_CSS)]
         )
-        logger.info("\nPDF created successfully at:\n %s\n\n", pdf_path)
+        logger.info("PDF created successfully at: %s", pdf_path)
     except Exception as e:
-        logger.error("\nFailed to create PDF from %s:\n %s\n\n", file_name, e)
+        logger.error("Failed to create PDF from %s: %s", file_name, e)
+
+
+def parse_concepts_list_response(response_str: str):
+    """
+    - Tries to `json.loads(...)` the string, returns a list of concepts if they exist.
+    - Uses a `try/except` block to handle `json.JSONDecodeError`.
+    """
+    try:
+        data = json.loads(response_str)
+        return data.get("concepts", [])
+    except json.JSONDecodeError as e:
+        logger.error("Error parsing JSON in parse_concepts_list_response: %s", e)
+        return []
+
+
+def print_message(role, content, response_format, model, markdown):
+    """
+    - Uses `rich.console.Console` and the `Markdown` object to do pretty printing.
+    - If `markdown=True`, it will render the content as Markdown.
+    - If the role is "assistant" and `response_format` can parse the content, it tries to do so. Otherwise, it just prints.
+    """
+    role_styles = {
+        "system": "[bold cyan]System Message",
+        "user": "[bold green]User Message",
+        "assistant": f"[bold yellow]{model}: Response" if model else "[bold yellow]Assistant",
+        "token": "[bold magenta]Token Usage",
+        "flashcard": "[bold orange]Flashcards",
+        "problem_flashcards": "[bold red]Problem Flashcards",
+    }
+
+    # If content is Markdown text
+    if markdown and isinstance(content, str):
+        console.print("\n", Markdown(content), "\n")
+        return
+
+    # Token usage
+    if role.lower() == "token":
+        print("\n")
+        pprint(content, expand_all=True)
+        print("\n")
+        return
+
+    # If role is 'assistant' with a possible JSON content
+    if role.lower() in ["assistant"]:
+        if hasattr(response_format, "model_validate_json") and isinstance(content, str):
+            try:
+                text_content = response_format.model_validate_json(content)
+                pprint(text_content)
+                return
+            except Exception:
+                console.print("\n", content, "\n")
+                return
+        console.print("\n", content, "\n")
+        return
+
+    # For 'flashcard' or 'problem_flashcards', just pprint
+    if role.lower() in ["flashcard", "problem_flashcards"]:
+        console.rule("Completed Flashcards")
+
+        pprint(content, expand_all=True)
+        return
+
+    # Default
+    console.print("\n", content, "\n")
