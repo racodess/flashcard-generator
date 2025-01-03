@@ -1,14 +1,17 @@
 """
-Purpose:: provide a single place to:
+Purpose:
 
-- Decide which OpenAI LLM to call,
-- Build the “system” and “user” messages for the LLM,
-- Handle structured responses using OpenAI API.
+- LLM utility functions:
+    - Decide which OpenAI LLM to call
+    - Build the “system” and “user” messages for the LLM
+    - Handle structured responses using OpenAI API
 """
 from enum import Enum
 
 from rich.console import Console
+from rich.markdown import Markdown
 
+from generator.utils import format_utils
 from generator.utils.flashcard_logger import logger
 from generator.openai import prompts
 
@@ -93,10 +96,10 @@ def call_llm(
     """
     Builds the message list with:
 
-    - A “system” message (from `create_system_message`),
-    - A “user” message, which can be either raw text or base64 encoded image if `run_as_image=True`.
-    - Sends the request to the LLM using OpenAI's `client.beta.chat.completions.parse` API for structured output using Pydantic models defined in `models.py`.
-    - Extracts the best text result from the LLM, logs usage, returns the string.
+    - A “system” message (from `create_system_message`)
+    - A “user” message, which can be either raw text or base64 encoded image if `run_as_image=True`
+    - Sends the request to the LLM using OpenAI's `client.beta.chat.completions.parse` API for structured output using Pydantic models defined in `models.py`
+    - Extracts the best text result from the LLM, logs usage, returns the string
     """
     # Decide model based on whether we need "image analysis" or not
     model = GPT_4O if run_as_image else GPT_4O_MINI
@@ -119,6 +122,9 @@ def call_llm(
         # Normal text content
         messages.append({"role": "user", "content": user_content})
 
+    # Log message history sent as input to OpenAI API
+    console.log(f"[bold cyan]Messages sent to `{model}`:[/bold cyan]", messages)
+
     try:
         completion = client.beta.chat.completions.parse( # For structured output using pydantic models
             model=model, # OpenAI LLM
@@ -129,23 +135,33 @@ def call_llm(
             top_p=0.1, # For deterministic output; chooses within the top 10% most likely tokens
         )
     except Exception as e:
-        logger.error("\nError calling LLM for content_type='%s':\n %s\n\n", content_type, e, exc_info=True)
+        logger.error("Error calling LLM for content_type='%s': %s", content_type, e, exc_info=True)
         raise
 
     if not completion.choices:
-        logger.warning("\nNo completion choices returned for content_type='%s'.\n\n", content_type)
+        logger.warning("No completion choices returned for content_type='%s'.", content_type)
         return ""
 
     finish_reason = completion.choices[0].finish_reason
     if finish_reason != "stop":
         logger.warning(
-            "\nLLM finished processing content_type='%s' with reason:\n %s\n\n",
+            "LLM finished processing content_type='%s' with reason: %s",
             content_type, finish_reason
         )
 
-    # Log usage info
+    # Extract final text response
+    response = completion.choices[0].message.content
+
+    # Log assistant response based on message history
+    if response_format == "text":
+        console.log(f"[bold yellow]`{model}` response:[/bold yellow]\n")
+        format_utils.print_message("assistant", response, None, None, markdown=True)
+    else:
+        console.log(f"[bold yellow]`{model}` response:[/bold yellow]\n")
+        format_utils.print_message("assistant", response, response_format, None, markdown=False)
+
+    # Log token usage info
     usage_info = completion.usage
     console.log("[bold green]Token Usage:[/bold green]", usage_info)
 
-    # Extract final text response
-    return completion.choices[0].message.content
+    return response
