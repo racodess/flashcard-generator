@@ -48,7 +48,7 @@ OpenAI LLM references:
 """
 GPT_O1 = "o1-2024-12-17"
 GPT_O1_MINI = "o1-mini-2024-09-12"
-GPT_4O = "chatgpt-4o-latest"
+GPT_4O = "gpt-4o-2024-08-06"
 GPT_4O_MINI = "gpt-4o-mini"
 
 console = Console()
@@ -109,15 +109,19 @@ def call_llm(
 
     if run_as_image:
         # Treat user content as an "image request" structure required by OpenAI API
-        content = [
+        messages.append(
             {
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/png;base64,{user_content}"
-                }
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"{user_content}"
+                        }
+                    }
+                ]
             }
-        ]
-        messages.append({"role": "user", "content": f"{content}"})
+        )
     else:
         # Normal text content
         messages.append({"role": "user", "content": user_content})

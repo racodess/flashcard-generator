@@ -78,7 +78,7 @@ def get_img_uri(img: Image.Image) -> str:
     img.save(png_buffer, format="PNG")
     png_buffer.seek(0)
     base64_png = base64.b64encode(png_buffer.read()).decode('utf-8')
-    return f"{base64_png}"
+    return f"data:image/png;base64,{base64_png}"
 
 
 """
