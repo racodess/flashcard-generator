@@ -16,16 +16,16 @@ def fetch_and_parse_url(url: str) -> dict:
     - Calls `trafilatura.fetch_url(url)`, then `extract(...)` with some custom `Extractor(...)` settings,
     - Returns a JSON/dict with the URL and a list of “sections,” each of which is a structured representation of headings (H1, H2, etc.) and textual content.
     """
-    logger.info("Fetching content from: %s", url)
+    logger.info("\nFetching content from:\n %s\n\n", url)
     downloaded_html = fetch_url(url)
     if not downloaded_html:
-        logger.error("Failed to download content from %s", url)
+        logger.error("\nFailed to download content from %s\n\n", url)
         return None
 
     options = Extractor(output_format="html", with_metadata=True)
     extracted_html = extract(downloaded_html, options=options)
     if not extracted_html:
-        logger.warning("No textual content extracted from %s", url)
+        logger.warning("\nNo textual content extracted from %s\n\n", url)
         return None
 
     soup = BeautifulSoup(extracted_html, "html.parser")

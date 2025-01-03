@@ -56,8 +56,6 @@ def generate_flashcards(
     tags=None,
     flashcard_type='general',
     anki_media_path=None,
-    used_dir=None,
-    relative_path=""
 ):
     """
     Single entry point for generating flashcards:
@@ -103,7 +101,7 @@ def generate_flashcards(
         # Intended for URLs containing text content, not remote resources (e.g. img, pdf)
         webpage_data = fetch_and_parse_url(url)
         if not webpage_data:
-            logger.warning("No data returned from URL: %s. Skipping flashcard generation.", url)
+            logger.warning("\nNo data returned from URL:\n %s. Skipping flashcard generation.\n\n", url)
             return
 
         sections = webpage_data.get("sections", [])
@@ -115,27 +113,26 @@ def generate_flashcards(
         file_content = "\n\n".join(lines)
 
         if not file_content.strip():
-            logger.warning("No textual content found for URL: %s", url)
+            logger.warning("\nNo textual content found for URL\n: %s\n\n", url)
             return
-
     elif file_path:
         # Identify content type from file, read data
         detected_type = file_utils.get_content_type(file_path, url=None)
         if detected_type == 'unsupported':
-            logger.warning("Unsupported file type: %s. Skipping flashcard generation.", file_path)
+            logger.warning("\nUnsupported file type:\n %s. Skipping flashcard generation.\n\n", file_path)
             return
 
         content_type = detected_type.lower()
         try:
             file_content = file_utils.process_data(file_path, content_type)
         except file_utils.UnsupportedFileTypeError as e:
-            logger.warning("Unsupported file type error: %s", e)
+            logger.warning("\nUnsupported file type error:\n %s\n\n", e)
             return
         except Exception as e:
-            logger.error("Error reading file %s: %s", file_path, e)
+            logger.error("\nError reading file %s:\n %s\n\n", file_path, e)
             return
     else:
-        logger.error("Neither file_path nor url provided to generate_flashcards.")
+        logger.error("\nNeither file_path nor url provided to generate_flashcards.\n\n")
         return
 
     # Identify the source name

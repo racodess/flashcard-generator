@@ -49,9 +49,9 @@ def move_file(file_path, used_dir, context):
     new_file_path = os.path.join(target_dir, file_name)
     try:
         shutil.move(file_path, new_file_path)
-        logger.debug("Moved %s to %s", file_path, new_file_path)
+        logger.debug("\nMoved %s to %s\n\n", file_path, new_file_path)
     except Exception as e:
-        logger.error("Unable to move file %s: %s", file_path, e)
+        logger.error("\nUnable to move file %s:\n %s\n\n", file_path, e)
 
     return new_file_path
 
@@ -74,9 +74,9 @@ def copy_to_anki_media(file_path, content_type, anki_media_path):
             # Copy everything else by default
             shutil.copy2(file_path, anki_media_path)
 
-        logger.debug("Copied %s to Anki media path", file_name)
+        logger.debug("\nCopied %s to Anki media path\n\n", file_name)
     except Exception as e:
-        logger.error("Failed to copy %s to Anki media path: %s", file_name, e)
+        logger.error("\nFailed to copy %s to Anki media path:\n %s\n\n", file_name, e)
 
 
 def process_file(file_path, context):
@@ -95,7 +95,7 @@ def process_file(file_path, context):
     # 2. Identify content type (so we know how to copy it to Anki media)
     content_type = file_utils.get_content_type(new_file_path, url=None)
     if content_type == 'unsupported':
-        logger.warning("Unsupported file type: %s. Skipping.", new_file_path)
+        logger.warning("\nUnsupported file type:\n %s. Skipping.\n\n", new_file_path)
         return False
 
     copy_to_anki_media(new_file_path, content_type, context['anki_media_path'])
@@ -110,8 +110,6 @@ def process_file(file_path, context):
         tags=context['tags'],
         flashcard_type=flashcard_type,
         anki_media_path=context['anki_media_path'],
-        used_dir=context['used_dir'],
-        relative_path=context['relative_path']
     )
     return True
 
@@ -139,11 +137,11 @@ def process_url_in_txt(file_path, context):
     urls = [line for line in lines if url_pattern.match(line)]
 
     if not urls:
-        logger.info("No URLs found in %s, proceeding as normal .txt", new_file_path)
+        logger.info("\nNo URLs found in %s, proceeding as normal .txt\n\n", new_file_path)
         return process_file(new_file_path, context)
 
     any_generated = False
-    logger.info("URLs found in %s. Generating flashcards from web page content.", new_file_path)
+    logger.info("\nURLs found in %s. Generating flashcards from web page content.\n\n", new_file_path)
 
     for url in urls:
         # For simplicity, treat all these as 'general' flashcards
@@ -178,7 +176,7 @@ def process_directory(directory_path, anki_media_path):
     )
 
     if not processed_any:
-        logger.error("No files found or processed in the provided directory.")
+        logger.error("\nNo files found or processed in the provided directory.\n\n")
     return processed_any
 
 
@@ -197,14 +195,14 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
     try:
         entries = os.listdir(current_directory)
     except PermissionError:
-        logger.warning("Permission denied for directory: %s. Skipping.", current_directory)
+        logger.warning("\nPermission denied for directory:\n %s. Skipping.\n\n", current_directory)
         return False
 
     entries_full_paths = [os.path.join(current_directory, e) for e in entries]
     files = [f for f in entries_full_paths if os.path.isfile(f)]
     subdirs = [d for d in entries_full_paths if os.path.isdir(d)]
 
-    local_tags = read_local_tags(current_directory)
+    local_tags = read_local_tags(current_directory) if current_directory is not DIRECTORY_PATH else []
 
     processed_something = False
 
@@ -247,7 +245,7 @@ def read_local_tags(directory):
     """
     tags_file = os.path.join(directory, "tags.txt")
     if not os.path.isfile(tags_file):
-        logger.warning("No tags.txt found in %s. Proceeding without Anki tags.", directory)
+        logger.warning("\nNo tags.txt found in %s. Proceeding without Anki tags.\n\n", directory)
         return []
     with open(tags_file, 'r', encoding='utf-8') as tf:
         return [line.strip() for line in tf if line.strip()]
@@ -260,14 +258,14 @@ if __name__ == "__main__":
     - The script checks the path is valid, calls `process_directory(...)`, and the entire pipeline flows from there.
     """
     if len(sys.argv) != 2:
-        logger.error("Usage: python main.py <directory_path>")
+        logger.error("\nUsage: python main.py <directory_path>\n\n")
         sys.exit(1)
 
     DIRECTORY_PATH = sys.argv[1]
     anki_media_path = get_anki_media_path()
 
     if not os.path.isdir(DIRECTORY_PATH):
-        logger.error("The provided path is not a directory: %s", DIRECTORY_PATH)
+        logger.error("\nThe provided path is not a directory:\n %s\n\n", DIRECTORY_PATH)
         sys.exit(1)
 
     result = process_directory(DIRECTORY_PATH, anki_media_path)

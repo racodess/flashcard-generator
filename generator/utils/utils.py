@@ -25,7 +25,7 @@ def parse_concepts_list_response(response_str: str):
         data = json.loads(response_str)
         return data.get("concepts", [])
     except json.JSONDecodeError as e:
-        logger.error("Error parsing JSON in parse_concepts_list_response: %s", e)
+        logger.error("\nError parsing JSON in parse_concepts_list_response\n: %s\n\n", e)
         return []
 
 

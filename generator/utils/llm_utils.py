@@ -45,7 +45,7 @@ OpenAI LLM references:
 """
 GPT_O1 = "o1-2024-12-17"
 GPT_O1_MINI = "o1-mini-2024-09-12"
-GPT_4O = "gpt-4o-2024-11-20"
+GPT_4O = "chatgpt-4o-latest"
 GPT_4O_MINI = "gpt-4o-mini"
 
 console = Console()
@@ -105,14 +105,15 @@ def call_llm(
     messages = [{"role": "system", "content": system_message}]
 
     if run_as_image:
-        # Example usage: treat user content as an "image request" structure
+        # Treat user content as an "image request" structure required by OpenAI API
         content = [
             {
                 "type": "image_url",
-                "image_url": {"url": f"{user_content}"}
+                "image_url": {
+                    "url": f"data:image/png;base64,{user_content}"
+                }
             }
         ]
-        # If you have a utility function to transform `content` into valid JSON, do so
         messages.append({"role": "user", "content": f"{content}"})
     else:
         # Normal text content
@@ -120,25 +121,25 @@ def call_llm(
 
     try:
         completion = client.beta.chat.completions.parse( # For structured output using pydantic models
-            model=model,
-            messages=messages,
-            response_format=response_format,
+            model=model, # OpenAI LLM
+            messages=messages, # Conversation history
+            response_format=response_format, # For text or structured output
             max_completion_tokens=16384, # Input+output can use quite a lot of tokens; ensures we stay within "max output token" limit of GPT-4o & GPT-4o-mini, but o1 models go much higher.
             temperature=0, # For deterministic output
-            top_p=0.1, # For deterministic output
+            top_p=0.1, # For deterministic output; chooses within the top 10% most likely tokens
         )
     except Exception as e:
-        logger.error("Error calling LLM for content_type='%s': %s", content_type, e, exc_info=True)
+        logger.error("\nError calling LLM for content_type='%s':\n %s\n\n", content_type, e, exc_info=True)
         raise
 
     if not completion.choices:
-        logger.warning("No completion choices returned for content_type='%s'.", content_type)
+        logger.warning("\nNo completion choices returned for content_type='%s'.\n\n", content_type)
         return ""
 
     finish_reason = completion.choices[0].finish_reason
     if finish_reason != "stop":
         logger.warning(
-            "LLM finished processing content_type='%s' with reason: %s",
+            "\nLLM finished processing content_type='%s' with reason:\n %s\n\n",
             content_type, finish_reason
         )
 

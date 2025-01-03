@@ -20,14 +20,14 @@ from generator.importer.templates import ADDITIONAL_CSS
 
 def get_img_uri(img: Image.Image) -> str:
     """
-    - Takes a PIL Image, writes it to an in-memory buffer as PNG, base64-encodes it, and returns the `data:image/png;base64,<...>` string.
+    - Takes a PIL Image, writes it to an in-memory buffer as PNG, base64-encodes it, and returns the base64 string.
     - This is used by `file_utils` to handle images.
     """
     png_buffer = io.BytesIO()
     img.save(png_buffer, format="PNG")
     png_buffer.seek(0)
     base64_png = base64.b64encode(png_buffer.read()).decode('utf-8')
-    return base64_png
+    return f"{base64_png}"
 
 
 def create_pdf_from_markdown(collection_media_path: str, file_name: str, text_markdown: str) -> None:
@@ -54,6 +54,6 @@ def create_pdf_from_markdown(collection_media_path: str, file_name: str, text_ma
             pdf_path,
             stylesheets=[CSS(string=ADDITIONAL_CSS)]
         )
-        logger.info("PDF created successfully at: %s", pdf_path)
+        logger.info("\nPDF created successfully at:\n %s\n\n", pdf_path)
     except Exception as e:
-        logger.error("Failed to create PDF from %s: %s", file_name, e)
+        logger.error("\nFailed to create PDF from %s:\n %s\n\n", file_name, e)

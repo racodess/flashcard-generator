@@ -63,15 +63,15 @@ def _invoke(action, **params):
         ) as response:
             data = json.load(response)
     except Exception as e:
-        logger.error("Failed to communicate with AnkiConnect. Make sure the Anki application is open on this system: %s", e)
+        logger.error("\nFailed to communicate with AnkiConnect. Make sure the Anki application is open on this system:\n %s\n", e)
         raise
 
     if len(data) != 2:
-        raise Exception("Response has an unexpected number of fields.")
+        raise Exception("\nResponse has an unexpected number of fields.\n\n")
     if "error" not in data:
-        raise Exception("Response is missing required 'error' field.")
+        raise Exception("\nResponse is missing required 'error' field.\n\n")
     if "result" not in data:
-        raise Exception("Response is missing required 'result' field.")
+        raise Exception("\nResponse is missing required 'result' field.\n\n")
     if data["error"] is not None:
         raise Exception(data["error"])
 
@@ -87,10 +87,10 @@ def ensure_template_exists(template_name):
     """
     existing_models = _invoke("modelNames")
     if template_name in existing_models:
-        logger.info("Anki note type '%s' already exists.", template_name)
+        logger.info("\nAnki note type '%s' already exists.\n\n", template_name)
         return
 
-    logger.info("Anki note type '%s' not found. Creating it...", template_name)
+    logger.info("\nAnki note type '%s' not found. Creating it...\n\n", template_name)
 
     if template_name == templates.PROBLEM_CARD_NAME:
         fields = templates.PROBLEM_TEMPLATE_FIELDS
@@ -169,7 +169,7 @@ def ensure_template_exists(template_name):
         css=css
     )
 
-    logger.info("Anki note type '%s' created successfully.", template_name)
+    logger.info("\nAnki note type '%s' created successfully.\n\n", template_name)
 
 
 def create_deck(deck_name):
@@ -179,7 +179,7 @@ def create_deck(deck_name):
     :param deck_name: The name of the deck to create or ensure exists.
     :return: The result from AnkiConnect's createDeck action.
     """
-    logger.info("Creating or ensuring existence of deck '%s'...", deck_name)
+    logger.info("\nCreating or ensuring existence of deck '%s'...\n\n", deck_name)
     return _invoke("createDeck", deck=deck_name)
 
 
@@ -192,7 +192,7 @@ def get_default_deck():
     """
     existing_decks = _invoke("deckNames")
     if not existing_decks:
-        logger.warning("Failed to retrieve deck names from Anki.")
+        logger.warning("\nFailed to retrieve deck names from Anki.\n\n")
         return None
 
     imported_deck_pattern = re.compile(r"^Imported(\d+)$", re.IGNORECASE)
@@ -209,7 +209,7 @@ def get_default_deck():
 
     deck_name = f"Imported{next_deck_number}"
     create_deck(deck_name)
-    logger.info("Importing flashcards to deck: %s", deck_name)
+    logger.info("\nImporting flashcards to deck:\n %s\n\n", deck_name)
     return deck_name
 
 
@@ -304,10 +304,10 @@ def add_flashcards_to_anki(flashcards_model, template_name="Default", deck_name=
         # If note_id is None in the response, it means adding that note failed.
         failed_notes = [i for i, note_id in enumerate(result) if note_id is None]
         if not failed_notes:
-            logger.info("Successfully added %d notes to deck '%s'.", len(result), deck_name)
+            logger.info("\nSuccessfully added %d notes to deck '%s'.\n\n", len(result), deck_name)
         else:
-            logger.warning("Failed to add %d notes to deck '%s'.", len(failed_notes), deck_name)
+            logger.warning("\nFailed to add %d notes to deck '%s'.\n\n", len(failed_notes), deck_name)
     else:
-        logger.error("Failed to add notes to Anki.")
+        logger.error("\nFailed to add notes to Anki.\n\n")
 
-    logger.info("Notes added with IDs: %s", result)
+    logger.info("\nNotes added with IDs:\n %s\n\n", result)

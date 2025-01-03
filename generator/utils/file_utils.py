@@ -57,12 +57,12 @@ def process_data(file_path: str, content_type: str):
     """
     read_func = READ_DISPATCH.get(content_type)
     if not read_func:
-        raise UnsupportedFileTypeError(f"Unsupported file type: {content_type}")
+        raise UnsupportedFileTypeError(f"\nUnsupported file type:\n {content_type}\n\n")
 
     try:
         return read_func(file_path)
     except Exception as e:
-        logger.error("Error processing file %s as %s: %s", file_path, content_type, e)
+        logger.error("\nError processing file %s as %s:\n %s\n\n", file_path, content_type, e)
         raise
 
 
