@@ -151,8 +151,6 @@ def process_url_in_txt(file_path, context):
             tags=context['tags'],
             flashcard_type='general',
             anki_media_path=context['anki_media_path'],
-            used_dir=context['used_dir'],
-            relative_path=context['relative_path']
         )
         any_generated = True
 
