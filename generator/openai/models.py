@@ -11,17 +11,6 @@ Purpose:
 from typing import List, Literal
 from pydantic import BaseModel, Field, ConfigDict, ValidationError
 
-class Data(BaseModel):
-    image: Literal[""]
-    external_source: Literal[""]
-    external_page: Literal[""]
-    url: Literal[""]
-
-
-class Extra(BaseModel):
-
-    model_config = ConfigDict(extra='forbid')
-
 
 class ConceptItem(BaseModel):
     context: str = Field(
@@ -46,7 +35,24 @@ class Concepts(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class Data(BaseModel):
+    image: Literal[""]
+    external_source: Literal[""]
+    external_page: Literal[""]
+    url: Literal[""]
+
+
+class Thought(BaseModel):
+    thought: str = Field(
+        description="A step in your reasoning."
+    )
+    model_config = ConfigDict(extra='forbid')
+
+
 class FlashcardItem(BaseModel):
+    reasoning: Thought = Field(
+        description="Container for your internal monologue."
+    )
     front: str = Field(
         description="The question."
     )
