@@ -14,9 +14,6 @@ logging.basicConfig(
 # Create and export a named logger to use across modules
 logger = logging.getLogger("flashcard_app")
 
-# Prevent child logs bubbling up to root logger
-logger.propagate = False
-
 # Suppress logging from these third-party libraries to ERROR level
 logging.getLogger('weasyprint').setLevel(logging.ERROR)
 logging.getLogger('weasyprint.progress').setLevel(logging.ERROR)
