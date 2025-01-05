@@ -245,6 +245,7 @@ def get_notes(flashcards_model, template_name, deck_name):
             "Image": fc.data.image,
             "external_source": fc.data.external_source,
             "external_page": str(fc.data.external_page),
+            "url": fc.data.url,
         }
 
         if isinstance(fc, models.ProblemFlashcardItem):

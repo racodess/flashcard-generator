@@ -15,7 +15,8 @@ BASIC_TEMPLATE_FIELDS = [
     "Example",
     "Image",
     "external_source",
-    "external_page"
+    "external_page",
+    "url"
 ]
 
 # TODO: Add URL field
@@ -58,7 +59,8 @@ PROBLEM_TEMPLATE_FIELDS = [
     "Pitfall 9",
     "Image",
     "external_source",
-    "external_page"
+    "external_page",
+    "url"
 ]
 
 BASIC_CSS = r""".card {
@@ -338,6 +340,8 @@ pycmd(merged_pdf_addon);
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 BASIC_BACK_SCRIPT = r"""
@@ -358,6 +362,7 @@ function show() {
     document.getElementById("back").style.visibility = "visible";
     document.getElementById("example").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -428,6 +433,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_APPROACH_BACK_SCRIPT = r"""
@@ -445,6 +452,7 @@ function show() {
     document.getElementById("approach").style.visibility = "visible";
     document.getElementById("solution").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -537,6 +545,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_TIME_SPACE_BACK_SCRIPT = r"""
@@ -566,6 +576,7 @@ function show() {
     document.getElementById("space").style.visibility = "visible";
     document.getElementById("space_explanation").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -678,6 +689,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_STEP1_BACK_SCRIPT = r"""
@@ -704,6 +717,7 @@ function show() {
     document.getElementById("code1").style.visibility = "visible";
     document.getElementById("solution").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -818,6 +832,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_STEP2_BACK_SCRIPT = r"""
@@ -850,6 +866,7 @@ function show() {
     document.getElementById("code2").style.visibility = "visible";
     document.getElementById("solution").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -984,6 +1001,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_STEP3_BACK_SCRIPT = r"""
@@ -1022,6 +1041,7 @@ function show() {
     document.getElementById("code3").style.visibility = "visible";
     document.getElementById("solution").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -1175,6 +1195,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_STEP4_BACK_SCRIPT = r"""
@@ -1219,6 +1241,7 @@ function show() {
     document.getElementById("code4").style.visibility = "visible";
     document.getElementById("solution").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -1391,6 +1414,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_STEP5_BACK_SCRIPT = r"""
@@ -1442,6 +1467,7 @@ function show() {
     document.getElementById("code5").style.visibility = "visible";
     document.getElementById("solution").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -1634,6 +1660,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_STEP6_BACK_SCRIPT = r"""
@@ -1691,6 +1719,7 @@ function show() {
     document.getElementById("code6").style.visibility = "visible";
     document.getElementById("solution").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -1901,6 +1930,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_STEP7_BACK_SCRIPT = r"""
@@ -1964,6 +1995,7 @@ function show() {
     document.getElementById("code7").style.visibility = "visible";
     document.getElementById("solution").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -2192,6 +2224,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_STEP8_BACK_SCRIPT = r"""
@@ -2261,6 +2295,7 @@ function show() {
     document.getElementById("code8").style.visibility = "visible";
     document.getElementById("solution").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """
@@ -2508,6 +2543,8 @@ function send_pdf_info_back(){
 }
 </script>
 {{/external_source}}
+
+{{#url}}<br><br><div id="url">Source: <a href="{{url}}">{{url}}</a></div>{{/url}}
 """
 
 PROBLEM_STEP9_BACK_SCRIPT = r"""
@@ -2582,6 +2619,7 @@ function show() {
     document.getElementById("code9").style.visibility = "visible";
     document.getElementById("solution").style.visibility = "visible";
     document.getElementById("external_source").style.visibility = "visible";
+    document.getElementById("url").style.visibility = "visible";
 }
 </script>
 """

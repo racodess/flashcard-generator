@@ -15,6 +15,7 @@ class Data(BaseModel):
     image: Literal[""]
     external_source: Literal[""]
     external_page: Literal[""]
+    url: Literal[""]
 
 
 class Extra(BaseModel):
