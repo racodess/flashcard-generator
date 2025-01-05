@@ -41,8 +41,8 @@ def fetch_and_parse_url(url: str) -> dict:
 
 def parse_headings_to_tree(soup) -> list:
     """
-    - Recursively walks the `<body>` to find headings (`<h1>...</h6>`) and paragraphs/other elements, building a hierarchical structure:
-    - If an element is not inside a heading, it is added at the top level as an "uncategorized element".
+    - Recursively walks the `<body>` to find headings (`<h1>...</h6>`) and paragraphs/other elements, building a hierarchical structure
+    - If an element is not inside a heading, it is added at the top level as an "uncategorized element"
 
     ```
     {
@@ -54,7 +54,7 @@ def parse_headings_to_tree(soup) -> list:
     ```
 
     Returns:
-        list: A list of section objects (headings) and/or element objects.
+        list: A list of section objects (headings) and/or element objects
     """
     sections = []
     heading_stack = {level: None for level in range(1, 7)}
@@ -83,6 +83,7 @@ def parse_headings_to_tree(soup) -> list:
             continue
 
         tag_name = elem.name.lower()
+        # Build hierarchy for headers h1 to h6
         if tag_name in [f"h{i}" for i in range(1, 7)]:
             level = int(tag_name[1])  # e.g. "h2" -> level=2
             heading_text = elem.get_text(strip=True)
@@ -116,7 +117,7 @@ def parse_headings_to_tree(soup) -> list:
                 # Reset deeper heading references
                 for deeper in range(level + 1, 7):
                     heading_stack[deeper] = None
-
+        # For non-header elements
         else:
             content_text = elem.get_text(strip=True)
             if not content_text:
@@ -141,6 +142,84 @@ def parse_headings_to_tree(soup) -> list:
     return sections
 
 
+# scraper.py
+
+def chunk_webpage(sections: list) -> list[dict]:
+    """
+    Recursively chunks the 'sections' list (usually top-level headings from parse_headings_to_tree)
+    so that:
+      - If there are multiple headings at the current level, chunk by each heading.
+      - If there's only one heading at the current level, skip that level and chunk deeper.
+
+    Returns a list of dicts like:
+        [
+          {
+            "title": "Heading Title",
+            "content": "All textual content under this heading"
+          },
+          ...
+        ]
+    """
+    # Base case: no sections
+    if not sections:
+        return []
+
+    # If there are multiple headings at this level, chunk by each heading
+    if len(sections) > 1:
+        chunks = []
+        for heading_node in sections:
+            if heading_node.get("type") == "heading":
+                chunk_title = heading_node.get("content", "Untitled Heading")
+                # Gather all text from this heading_node (including its subheadings/children)
+                chunk_content = extract_text_from_item(heading_node)
+                chunks.append({
+                    "title": chunk_title,
+                    "content": chunk_content
+                })
+            else:
+                # It's possible we have top-level 'element' or something else
+                pass
+        return chunks
+
+    # If there's exactly one heading at this level, skip chunking at this level:
+    # go deeper into its children, looking for multiple subheadings there.
+    single_heading = sections[0]
+    if single_heading.get("type") != "heading":
+        # If it's not a heading (could be an 'element'), just skip
+        return []
+
+    # The single heading might have a bunch of children (which may themselves be headings or elements)
+    # We'll extract just the child headings:
+    child_headings = [
+        child for child in single_heading.get("children", [])
+        if child.get("type") == "heading"
+    ]
+
+    # If the heading has multiple child headings, chunk by each child heading
+    if len(child_headings) > 1:
+        chunks = []
+        for child in child_headings:
+            chunk_title = child.get("content", "Untitled Subheading")
+            chunk_content = extract_text_from_item(child)
+            chunks.append({
+                "title": chunk_title,
+                "content": chunk_content
+            })
+        return chunks
+
+    # If there's exactly one child heading, we skip that level again (go deeper)
+    if len(child_headings) == 1:
+        return chunk_webpage(child_headings)
+    else:
+        # If the single heading has no child headings at all, then we treat that heading as a chunk
+        chunk_title = single_heading.get("content", "Untitled Heading")
+        chunk_content = extract_text_from_item(single_heading)
+        return [{
+            "title": chunk_title,
+            "content": chunk_content
+        }]
+
+
 def extract_text_from_item(item: dict) -> str:
     """
     - Recursively accumulates all textual content from headings & sub-elements, returning a single large text string.
@@ -149,12 +228,13 @@ def extract_text_from_item(item: dict) -> str:
     if item.get("type") == "element":
         # Return the element content as plain text
         return item.get("content", "").strip()
-
     elif item.get("type") == "heading":
         heading_title = item.get("content", "Untitled Section")
         child_text = []
+
         for child in item.get("children", []):
             child_text.append(extract_text_from_item(child))
+
         return f"## {heading_title}\n\n" + "\n\n".join(child_text)
 
     return ""
