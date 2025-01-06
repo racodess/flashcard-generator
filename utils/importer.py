@@ -19,9 +19,8 @@ import html
 import json
 import urllib.request
 
-from generator.utils.flashcard_logger import logger
-from generator.openai import models
-from generator.importer import templates
+from utils.flashcard_logger import logger
+from utils import models, templates
 
 
 def _request(action, **params):

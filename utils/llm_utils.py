@@ -9,11 +9,9 @@ Purpose:
 from enum import Enum
 
 from rich.console import Console
-from rich.markdown import Markdown
 
-from generator.utils import format_utils
-from generator.utils.flashcard_logger import logger
-from generator.openai import prompts
+from utils import format_utils, prompts
+from utils.flashcard_logger import logger
 
 from openai import OpenAI
 

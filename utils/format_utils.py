@@ -6,7 +6,6 @@ Purpose:
     - Parsing list of concepts required in flashcard generation pipeline
     - Printing messages
 """
-import logging
 import os
 import json
 
@@ -17,10 +16,9 @@ from rich.console import Console
 import markdown2
 from weasyprint import HTML, CSS
 # used by weasyprint
-import pygments
 
-from generator.utils.flashcard_logger import logger
-from generator.importer.templates import ADDITIONAL_CSS
+from utils.flashcard_logger import logger
+from utils.templates import ADDITIONAL_CSS
 
 console = Console()
 

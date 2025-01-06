@@ -19,17 +19,14 @@ import os
 
 from rich.console import Console
 
-from generator.openai import models
-from generator.openai import prompts
-from generator.importer import importer
-from generator.utils import format_utils, file_utils
-from generator.utils.llm_utils import (
+from utils import models, prompts, format_utils, file_utils, importer
+from utils.llm_utils import (
     PromptType,
     create_system_message,
     call_llm
 )
-from generator.utils.flashcard_logger import logger
-from generator.utils.scraper import fetch_and_parse_url, chunk_webpage
+from utils.flashcard_logger import logger
+from utils.scraper import fetch_and_parse_url, chunk_webpage
 
 console = Console()
 
