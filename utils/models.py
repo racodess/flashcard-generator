@@ -12,6 +12,13 @@ from typing import List, Literal
 from pydantic import BaseModel, Field, ConfigDict, ValidationError
 
 
+class Data(BaseModel):
+    image: Literal[""]
+    external_source: Literal[""]
+    external_page: Literal[""]
+    url: Literal[""]
+
+
 class ConceptItem(BaseModel):
     context: str = Field(
         description="One comprehensive paragraph of context for the concept item."
@@ -33,13 +40,6 @@ class Concepts(BaseModel):
         description="A list of concept items cited verbatim from the source material and formatted in markdown."
     )
     model_config = ConfigDict(extra='forbid')
-
-
-class Data(BaseModel):
-    image: Literal[""]
-    external_source: Literal[""]
-    external_page: Literal[""]
-    url: Literal[""]
 
 
 class Thought(BaseModel):
@@ -156,7 +156,7 @@ class ProblemFlashcard(BaseModel):
     problem: str = Field(
         description="Name of the problem. For example: 'Two Sum'"
     )
-    url: str = Field(
+    problem_url: str = Field(
         description="The exact URL of the algorithmic problem-solving question."
     )
     flashcards: List[ProblemFlashcardItem] = Field(

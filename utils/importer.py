@@ -250,7 +250,7 @@ def get_notes(flashcards_model, template_name, deck_name):
         if isinstance(fc, models.ProblemFlashcardItem):
             fields["Header"] = fc.header
             fields["Problem"] = flashcards_model.problem
-            fields["URL"] = flashcards_model.url
+            fields["Problem_URL"] = flashcards_model.problem_url
             fields["Approach"] = fc.approach
             fields["Solution"] = escape_html_entities(fc.solution)
 

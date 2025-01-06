@@ -7,7 +7,6 @@ BASIC_CARD_NAME = "AnkiConnect: Basic"
 
 PROBLEM_CARD_NAME = "AnkiConnect: Problem"
 
-# TODO: Add URL field
 BASIC_TEMPLATE_FIELDS = [
     "Header",
     "Front",
@@ -19,11 +18,10 @@ BASIC_TEMPLATE_FIELDS = [
     "url"
 ]
 
-# TODO: Add URL field
 PROBLEM_TEMPLATE_FIELDS = [
     "Header",
     "Problem",
-    "URL",
+    "Problem_URL",
     "Approach",
     "Solution",
     "Time",
@@ -216,7 +214,7 @@ MARKDOWN_KATEX_SCRIPT = r"""
 		getScript("_markdown-it-mark.js","https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/_markdown-it-mark.js")
 	];
         Promise.all(getResources).then(() => getScript("_mhchem.js", "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/mhchem.min.js")).then(render).catch(show);
-	function getScript(path, altURL) {
+	function getScript(path, altProblem_URL) {
 		return new Promise((resolve, reject) => {
 			let script = document.createElement("script");
 			script.onload = resolve;
@@ -224,14 +222,14 @@ MARKDOWN_KATEX_SCRIPT = r"""
 				let script_online = document.createElement("script");
 				script_online.onload = resolve;
 				script_online.onerror = reject;
-				script_online.src = altURL;
+				script_online.src = altProblem_URL;
 				document.head.appendChild(script_online);
 			}
 			script.src = path;
 			document.head.appendChild(script);
 		})
 	}
-	function getCSS(path, altURL) {
+	function getCSS(path, altProblem_URL) {
 		return new Promise((resolve, reject) => {
 			var css = document.createElement('link');
 			css.setAttribute('rel', 'stylesheet');
@@ -243,7 +241,7 @@ MARKDOWN_KATEX_SCRIPT = r"""
 				css_online.type = 'text/css';
 				css_online.onload = resolve;
 				css_online.onerror = reject;
-				css_online.href = altURL;
+				css_online.href = altProblem_URL;
 				document.head.appendChild(css_online);
 			}
 			css.href = path;
@@ -372,7 +370,7 @@ BASIC_BACK_TEMPLATE = BASIC_BACK_MAIN + MARKDOWN_KATEX_SCRIPT + BASIC_BACK_SCRIP
 PROBLEM_APPROACH_FRONT_MAIN = r"""
 {{#Approach}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -402,7 +400,7 @@ PROBLEM_APPROACH_FRONT_TEMPLATE = PROBLEM_APPROACH_FRONT_MAIN + MARKDOWN_KATEX_S
 
 PROBLEM_APPROACH_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -464,7 +462,7 @@ PROBLEM_TIME_SPACE_FRONT_MAIN = r"""
 {{#Time}}
 {{#Space}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -502,7 +500,7 @@ PROBLEM_TIME_SPACE_FRONT_TEMPLATE = PROBLEM_TIME_SPACE_FRONT_MAIN + MARKDOWN_KAT
 
 PROBLEM_TIME_SPACE_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -588,7 +586,7 @@ PROBLEM_PITFALLS_FRONT_MAIN = r"""
 {{#Solution}}
 {{#Pitfall 1}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -612,7 +610,7 @@ PROBLEM_STEP1_FRONT_MAIN = r"""
 {{#Approach}}
 {{#Step 1}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -648,7 +646,7 @@ PROBLEM_STEP1_FRONT_TEMPLATE = PROBLEM_STEP1_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT 
 
 PROBLEM_STEP1_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -729,7 +727,7 @@ PROBLEM_STEP2_FRONT_MAIN = r"""
 {{#Step 1}}
 {{#Step 2}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -785,7 +783,7 @@ PROBLEM_STEP2_FRONT_TEMPLATE = PROBLEM_STEP2_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT 
 
 PROBLEM_STEP2_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -879,7 +877,7 @@ PROBLEM_STEP3_FRONT_MAIN = r"""
 {{#Step 2}}
 {{#Step 3}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -949,7 +947,7 @@ PROBLEM_STEP3_FRONT_TEMPLATE = PROBLEM_STEP3_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT 
 
 PROBLEM_STEP3_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -1055,7 +1053,7 @@ PROBLEM_STEP4_FRONT_MAIN = r"""
 {{#Step 3}}
 {{#Step 4}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -1138,7 +1136,7 @@ PROBLEM_STEP4_FRONT_TEMPLATE = PROBLEM_STEP4_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT 
 
 PROBLEM_STEP4_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -1256,7 +1254,7 @@ PROBLEM_STEP5_FRONT_MAIN = r"""
 {{#Step 4}}
 {{#Step 5}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -1351,7 +1349,7 @@ PROBLEM_STEP5_FRONT_TEMPLATE = PROBLEM_STEP5_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT 
 
 PROBLEM_STEP5_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -1483,7 +1481,7 @@ PROBLEM_STEP6_FRONT_MAIN = r"""
 {{#Step 5}}
 {{#Step 6}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -1592,7 +1590,7 @@ PROBLEM_STEP6_FRONT_TEMPLATE = PROBLEM_STEP6_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT 
 
 PROBLEM_STEP6_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -1736,7 +1734,7 @@ PROBLEM_STEP7_FRONT_MAIN = r"""
 {{#Step 6}}
 {{#Step 7}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -1857,7 +1855,7 @@ PROBLEM_STEP7_FRONT_TEMPLATE = PROBLEM_STEP7_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT 
 
 PROBLEM_STEP7_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -2013,7 +2011,7 @@ PROBLEM_STEP8_FRONT_MAIN = r"""
 {{#Step 7}}
 {{#Step 8}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -2146,7 +2144,7 @@ PROBLEM_STEP8_FRONT_TEMPLATE = PROBLEM_STEP8_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT 
 
 PROBLEM_STEP8_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
@@ -2314,7 +2312,7 @@ PROBLEM_STEP9_FRONT_MAIN = r"""
 {{#Step 8}}
 {{#Step 9}}
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
@@ -2459,7 +2457,7 @@ PROBLEM_STEP9_FRONT_TEMPLATE = PROBLEM_STEP9_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT 
 
 PROBLEM_STEP9_BACK_MAIN = r"""
 
-{{#URL}}<a href='{{URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/URL}}
+{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
 
 {{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
 
