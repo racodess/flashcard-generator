@@ -16,6 +16,7 @@ from rich.console import Console
 import markdown2
 from weasyprint import HTML, CSS
 # used by weasyprint
+import pygments
 
 from utils.flashcard_logger import logger
 from utils.templates import ADDITIONAL_CSS
