@@ -1,7 +1,7 @@
 tags:
-  DSA:
-    Math: []
-    Sorting:
+  - DSA:
+    - Math
+    - Sorting:
       - Quick_Sort
       - Merge_Sort
       - Heap_Sort
@@ -12,12 +12,12 @@ tags:
       - Radix_Sort
       - Bucket_Sort
       - Tim_Sort
-    Complexity_Analysis:
+    - Complexity_Analysis:
       - Big_O
       - Time
       - Space
-    Recursion: []
-    Arrays_and_strings:
+    - Recursion
+    - Arrays_and_strings:
       - Two_pointers
       - Sliding_window
       - Prefix_sum
@@ -26,74 +26,73 @@ tags:
       - Sub_strings
       - Sub_sequences
       - Sub_sets
-    Hashing:
+    - Hashing:
       - Hash_Functions
-    Sets:
+    - Sets:
       - Checking_for_existence
       - Counting
-    Linked_lists:
+    - Linked_lists:
       - Singly_linked_list
       - Doubly_linked_list:
           - Sentinel_nodes
           - Dummy_pointers
           - Fast_and_slow_pointers
       - Reversing_linked_list
-    Stacks: []
-    String_problems: []
-    Queues:
+    - Stacks
+    - String_problems
+    - Queues:
       - Monotonic
-    Binary_trees:
+    - Binary_trees:
       - Tree_terminology
       - Binary_trees_DFS
       - Binary_trees_BFS
       - Binary_search_trees
-    Graphs:
+    - Graphs:
       - Graphs_DFS
       - Graphs_BFS
       - Implicit_graphs
-    Heaps:
+    - Heaps:
       - Top_k
-    Greedy_algorithms: []
-    Binary_Search:
+    - Greedy_algorithms
+    - Binary_Search:
       - On_arrays
       - On_solution_spaces
-    Backtracking:
+    - Backtracking:
       - Generation
       - More_constrained_backtracking
-    Dynamic_programming:
+    - Dynamic_programming:
       - Framework_for_DP
       - Multi_dimensional_problems
       - Matrix_DP
       - Difference_array
-    Tries: []
-    Bit_manipulation:
+    - Tries
+    - Bit_manipulation:
       - Bitmasks
-    Intervals: []
-    Modular_arithmetic: []
-    Dijkstras_algorithm: []
-    Advanced_Data_Structures:
-      Union_Find:
+    - Intervals
+    - Modular_arithmetic
+    - Dijkstras_algorithm
+    - Advanced_Data_Structures:
+      - Union_Find:
         - Disjoint_Set_Union
         - Segment_Trees
         - Fenwick_Trees
         - Suffix_Trees
         - Priority_Queues
-    Advanced_Algorithms:
-      Graphs:
-        Shortest_Path_algorithms:
+    - Advanced_Algorithms:
+      - Graphs:
+        - Shortest_Path_algorithms:
           - Bellman_Ford
           - Floyd_Warshall
-      Bit_manipulation:
+      - Bit_manipulation:
         - Bitwise_Operations
-      String_algorithms:
+      - String_algorithms:
         - KMP_algorithm
         - Rabin_Karp
-      Randomized_Algorithms: []
-      Geometry_algorithms: []
-      Design_Problems: []
-      Number_Theory: []
-      Bitmask_DP: []
-      Game_Theory: []
-      Memoization: []
-      Amortized_Analysis: []
-      Reservoir_Sampling: []
+      - Randomized_Algorithms
+      - Geometry_algorithms
+      - Design_Problems
+      - Number_Theory
+      - Bitmask_DP
+      - Game_Theory
+      - Memoization
+      - Reservoir_Sampling

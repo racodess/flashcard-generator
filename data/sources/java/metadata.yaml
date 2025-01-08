@@ -1,6 +1,6 @@
 tags:
-  Java:
-    Basics:
+  - Java:
+    - Basics:
       - Syntax
       - Data_Types
       - Operators
@@ -8,7 +8,7 @@ tags:
       - Variables
       - Input_Output
       - Arrays
-    OOP:
+    - OOP:
       - Classes_and_Objects
       - Inheritance
       - Polymorphism
@@ -18,27 +18,27 @@ tags:
       - Abstract_Classes
       - Inner_Classes
       - Enums
-    Collections:
-      List:
+    - Collections:
+      - List:
         - ArrayList
         - LinkedList
         - Vector
         - Stack
-      Set:
+      - Set:
         - HashSet
         - LinkedHashSet
         - TreeSet
-      Queue:
+      - Queue:
         - PriorityQueue
         - Deque
-      Map:
+      - Map:
         - HashMap
         - LinkedHashMap
         - TreeMap
         - Hashtable
         - WeakHashMap
         - ConcurrentHashMap
-    Concurrency:
+    - Concurrency:
       - Threads
       - Runnable
       - Callable
@@ -50,27 +50,27 @@ tags:
       - Thread_Pools
       - Futures
       - CompletableFuture
-    Streams:
-      Stream_API: []
-      Stream_Operations:
+    - Streams:
+      - Stream_API
+      - Stream_Operations:
         - Intermediate_Operations
         - Terminal_Operations
-    Generics:
+    - Generics:
       - Generic_Classes
       - Generic_Methods
       - Type_Bounds
       - Wildcards
-    Exception_Handling:
+    - Exception_Handling:
       - Try_Catch_Finally
       - Throw
       - Throws_Clause
       - Custom_Exceptions
-    JVM:
+    - JVM:
       - Memory_Management
       - Garbage_Collection
       - Class_Loading
       - JIT_Compiler
-    Concurrency_Utilities:
+    - Concurrency_Utilities:
       - Executors
       - Locks
       - Atomic_Variables
@@ -78,11 +78,11 @@ tags:
       - Thread_Pools
       - Futures
       - CompletableFuture
-    Security:
+    - Security:
       - Encryption
       - Authentication
       - Authorization
-    Advanced_Topics:
+    - Advanced_Topics:
       - Reflection
       - Annotations
       - Class_Loaders
