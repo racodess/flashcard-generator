@@ -1,0 +1,34 @@
+tags:
+  Python:
+    Basics:
+      Syntax: []
+      Data_Types: []
+      Operators: []
+      Control_Flow: []
+      Variables: []
+      Input_Output: []
+      Lists: []
+      Tuples: []
+      Dictionaries: []
+      Sets: []
+    Functions:
+      Defining: []
+      Lambda: []
+      Recursion: []
+    Modules:
+      Standard_Library: []
+      Third_Party: []
+    OOP:
+      Classes: []
+      Inheritance: []
+      Polymorphism: []
+      Encapsulation: []
+    Advanced:
+      Decorators: []
+      Generators: []
+      Context_Managers: []
+      Concurrency: []
+    File_I/O: []
+    Error_Handling: []
+    Testing: []
+    Libraries: []

@@ -1,0 +1,69 @@
+tags:
+  DSA:
+    Problems:
+      Math: []
+      Data_Structures:
+        Arrays_and_strings:
+          - Two_Pointers
+          - Sliding_Window
+          - Prefix_Sum
+        Linked_Lists:
+          - Fast_and_Slow_Pointers
+          - Reversing_a_Linked_List
+        Stacks:
+          - Strings
+        Queues: []
+        Stacks_and_queues:
+          - Monotonic
+        Heaps:
+          - Top_k
+        Trees:
+          Binary_tree:
+            - DFS
+            - BFS
+          Binary_search_tree: []
+          Tree_Traversal: []
+          Cycle_Detection: []
+        Graphs:
+          - Implitcit_graphs
+          - Graph_Traversal
+          - Union_Find
+          - Topological_Sort
+          - DFS
+          - BFS
+        Tries: []
+        Hashmaps:
+          - Hashing
+          - Counting
+          - Checking_existence
+      Algorithms:
+        Sorting:
+          - Insertion_Sort
+          - Selection_Sort
+          - Bubble_Sort
+          - Heap_Sort
+          - Radix_Sort
+          - Bucket_Sort
+          - Counting_Sort
+          - Merge_Sort
+          - Quick_Sort
+          - Topological_Sort
+        Searching:
+          Binary_Search:
+            - Binary_Search_on_arrays
+            - Binary_Search_on_Solution_Spaces
+        Graph_Algorithms:
+          - Shortest_Path
+          - Cycle_Detection
+        Dynamic_Programming:
+          - Knapsack_Problems
+          - Longest_Common_Subsequence
+          - Fibonacci
+        Greedy: []
+        Divide_and_Conquer:
+          - Merge_Sort
+          - Quick_Sort
+        Backtracking:
+          - Subset_Problems
+          - Permutations
+          - Combination_Sum

@@ -205,7 +205,8 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
     processed_something = False
 
     for fpath in files:
-        if os.path.basename(fpath) == "tags.txt":
+        base_name = os.path.basename(fpath)
+        if base_name == "tags.txt" or base_name == "metadata.yaml":
             continue  # skips making flashcards out of tags.txt
 
         relative_path = os.path.relpath(current_directory, directory_path)
