@@ -43,16 +43,23 @@ class Concepts(BaseModel):
 
 
 class Thought(BaseModel):
+    entity1: str = Field(
+        description="The first entity or cause."
+    )
+    entity2: str = Field(
+        description="The second entity or effect."
+    )
+    relationship: str = Field(
+        description="The entity-entity or cause-effect relationship."
+    )
     thought: str = Field(
-        description="A step in your reasoning."
+        description="Your thought process summarizing the entity-entity or cause-effect relationship."
     )
     model_config = ConfigDict(extra='forbid')
 
 
 class FlashcardItem(BaseModel):
-    reasoning: Thought = Field(
-        description="Container for your internal monologue."
-    )
+    reasoning: Thought
     front: str = Field(
         description="The question."
     )
