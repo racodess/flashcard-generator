@@ -146,9 +146,13 @@ def process_chunked_content(chunks, flashcard_type, tags, url_name, source_name,
 
         logger.info(f"Generating flashcards from chunk {idx}: {heading_title}")
 
-        # Show chunk in console for clarity or debugging
+        # Show chunk in console for clarity or debugging unless it's a base64 encoded str
         console.rule(f"Chunk {idx}: {heading_title}")
-        console.print(chunk_text)
+
+        if content_type == "text" or content_type == "json":
+            console.print(chunk_text)
+        else:
+            console.print("Image")
         print("\n" * 3)
 
         if flashcard_type == 'problem':

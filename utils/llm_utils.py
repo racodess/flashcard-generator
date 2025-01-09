@@ -124,8 +124,11 @@ def call_llm(
         # Normal text content
         messages.append({"role": "user", "content": user_content})
 
-    # Log message history sent as input to OpenAI API
-    console.log(f"[bold cyan]Messages sent to `{model}`:[/bold cyan]", messages)
+    # Log input message sent to AI model except base64 encodings to prevent overloading the console
+    if run_as_image:
+        console.log(f"[bold cyan]Messages sent to `{model}`:[/bold cyan]", "Image as base64 encoded string")
+    else:
+        console.log(f"[bold cyan]Messages sent to `{model}`:[/bold cyan]", messages)
 
     try:
         completion = client.beta.chat.completions.parse( # For structured output using pydantic models

@@ -11,6 +11,7 @@ Purpose:
 import os
 import io
 import json
+import yaml
 import base64
 from PIL import Image
 
@@ -140,3 +141,87 @@ READ_DISPATCH = {
     'image': read_image_file,
     'pdf': read_pdf_file
 }
+
+
+def read_metadata_tags(directory):
+    """
+    Reads a metadata.yaml file in the given directory, parses the 'tags' section,
+    and returns a list of strings. If metadata.yaml or 'tags:' is missing, returns [].
+    """
+
+    metadata_file = os.path.join(directory, "metadata.yaml")
+    if not os.path.isfile(metadata_file):
+        logger.warning("No metadata.yaml found in %s.", directory)
+        return []
+
+    with open(metadata_file, 'r', encoding='utf-8') as f:
+        try:
+            yaml_data = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            logger.error("Error parsing metadata.yaml in %s: %s", directory, e)
+            return []
+
+    # We expect something like:
+    # tags:
+    #   - Python:
+    #     - Basics:
+    #       - Syntax
+    #       - Data_Types
+    #     - Functions:
+    #       - Defining
+    #       - Lambda
+    # ...
+    if "tags" not in yaml_data:
+        logger.warning("No 'tags:' key found in metadata.yaml in %s. Proceeding without Anki tags.", directory)
+        return []
+
+    tags_section = yaml_data["tags"]
+
+    # Now recursively flatten that structure:
+    flattened_tags = _flatten_tags(tags_section, [])
+    return flattened_tags
+
+
+def _flatten_tags(obj, path_so_far):
+    """
+    Recursively walk a nested dict-or-list structure of tags
+    and produce flattened '::'-separated paths, e.g.:
+      - "Python"
+      - "Python::Basics"
+      - "Python::Basics::Syntax"
+    """
+    results = []
+
+    # Case 1: obj is a dictionary
+    if isinstance(obj, dict):
+        for key, val in obj.items():
+            # Immediately add the key itself as a "leaf" (e.g. "Python", "Python::Basics", ...)
+            new_path = path_so_far + [str(key)]
+            results.append("::".join(new_path))
+
+            # Then handle children
+            if isinstance(val, dict):
+                # Recurse deeper
+                results.extend(_flatten_tags(val, new_path))
+            elif isinstance(val, list):
+                for item in val:
+                    if isinstance(item, dict):
+                        results.extend(_flatten_tags(item, new_path))
+                    else:
+                        # item is a leaf string => e.g. "Syntax"
+                        results.append("::".join(new_path + [str(item)]))
+            else:
+                # val is a direct leaf
+                results.append("::".join(new_path + [str(val)]))
+
+    # Case 2: obj is a list
+    elif isinstance(obj, list):
+        for item in obj:
+            results.extend(_flatten_tags(item, path_so_far))
+
+    # Case 3: obj is a scalar (string, int, etc.)
+    else:
+        # Just a direct leaf
+        results.append("::".join(path_so_far + [str(obj)]))
+
+    return results

@@ -183,7 +183,7 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
     - Recursively descends into subdirectories. Uses:
         - `os.listdir(...)` to list directory entries,
         - Splits them into “files” and “subdirs”,
-        - Reads local tags from a `tags.txt` if present,
+        - Reads local Anki tags from a `metadata.yaml` if present,
         - Processes each file with `process_file` or `process_url_in_txt`,
         - Calls itself on each subdirectory (ignores `used-files` directory).
     """
@@ -196,22 +196,21 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
         logger.warning("Permission denied for directory: %s. Skipping.", current_directory)
         return False
 
-    entries_full_paths = [os.path.join(current_directory, e) for e in entries]
-    files = [f for f in entries_full_paths if os.path.isfile(f)]
+    entries_full_paths = [os.path.join(current_directory, entry) for entry in entries]
+    files = [f for f in entries_full_paths if os.path.isfile(f) and os.path.basename(f) != "metadata.yaml"]
     subdirs = [d for d in entries_full_paths if os.path.isdir(d)]
-
-    local_tags = read_local_tags(current_directory) if current_directory is not DIRECTORY_PATH else []
 
     processed_something = False
 
     for fpath in files:
-        base_name = os.path.basename(fpath)
-        if base_name == "tags.txt" or base_name == "metadata.yaml":
-            continue  # skips making flashcards out of tags.txt
+        local_tags = file_utils.read_metadata_tags(current_directory) if current_directory != directory_path else []
+        # Log local tags for debugging
+        console.log("[bold red] Local tags:", local_tags)
 
         relative_path = os.path.relpath(current_directory, directory_path)
         if relative_path == ".":
             relative_path = ""
+
         context = {
             'relative_path': relative_path,
             'used_dir': used_dir,
@@ -234,20 +233,6 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
             processed_something = True
 
     return processed_something
-
-
-def read_local_tags(directory):
-    """
-    - tags.txt contains Anki tags to organize flashcards and must be included manually at the user's discretion. For creation, see the included examples.
-        - Opens `tags.txt` in that directory (if it exists, otherwise proceeds without Anki tags) and reads lines as tags.
-        - If no `tags.txt`, returns an empty list.
-    """
-    tags_file = os.path.join(directory, "tags.txt")
-    if not os.path.isfile(tags_file):
-        logger.warning("No tags.txt found in %s. Proceeding without Anki tags.", directory)
-        return []
-    with open(tags_file, 'r', encoding='utf-8') as tf:
-        return [line.strip() for line in tf if line.strip()]
 
 
 if __name__ == "__main__":
