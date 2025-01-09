@@ -75,7 +75,8 @@ The user will provide a list of information items, each containing context for t
 
 **Flashcard Item Field Instructions:**
 - **Reasoning Requirement:**
-    - Your task is to think step-by-step to establish the underlying substantive relationship, or causal link between entities in the current idea. You **must** explain your thought process by mentioning the concept, its context, the entities, their relationships, and why you made your decision.
+    - Your task is to think step-by-step to establish **all** underlying substantive relationship, or causal link between entities in the current idea.
+    - List entities until there are no more entities to list. For each entity, state what relationship it has with another entity.
 - **Front** and **Back:**
     - Focus on one idea per card that tests the complete and accurate underlying substantive relationship, logical link, or causal link in the idea without needing additional information.
     - Use questions requiring more than yes/no responses to engage memory.
@@ -96,7 +97,9 @@ The user will provide the first draft of a flashcard set.
 
 **Finalized Flashcard Item Field Instructions:**
 - **Reasoning Requirement:**
-    - Your task is to think step-by-step to reword the current draft flashcard's question and answer by optimizing wording using the DRY principle. You **must** explain your thought process by mentioning the draft's front/back, your improvements, and why you made that decision.
+    - Your task is to think step-by-step to reword the current draft flashcard's question and answer by optimizing wording using the DRY principle.
+    - List the essential entities from the front and back of the draft flashcard.
+    - For each entity state the relationship by optimizing wording using DRY.
 - **Front:** Reword the draft's question by paraphrasing a **complete** sentence using both the original front and back's content to formulate a contextualized question that tests the key underlying substantive relationship, logical link or causal link.
 - **Back:** Reword the draft's answer by using the DRY principle to paraphrase an **incomplete** sentence that contains only the exact minimal absolutely necessary information for highly-efficient Anki flashcards reviews.
 - **Example:** The draft's original unchanged `example` included verbatim.
