@@ -19,7 +19,7 @@ import os
 
 from rich.console import Console
 
-from utils import models, prompts, format_utils, file_utils, importer
+from utils import models, format_utils, file_utils, importer
 from utils.llm_utils import (
     PromptType,
     create_system_message,
@@ -31,20 +31,16 @@ from utils.scraper import fetch_and_parse_url, chunk_webpage
 console = Console()
 
 
-def fill_data_fields(flashcard_obj, url_name, source_name, content_type):
-    """
-    - Adds extra metadata fields to each flashcard as required by the Anki add-on "pdf viewer and editor".
-    """
-    for fc in flashcard_obj.flashcards:
-        fc.data.image = source_name if content_type == "image" else ""
-        fc.data.external_source = source_name if content_type != "image" else ""
-        fc.data.external_page = 1
-        fc.data.url = url_name
-
-
 def rewrite_content(content, content_type):
     system_message = create_system_message(PromptType.REWRITE_TEXT)
-    rewritten_chunk = run_llm_call(system_message, content, models.TEXT_FORMAT, content_type)
+    rewritten_chunk = call_llm(
+        system_message=system_message,
+        user_content=content,
+        response_format=models.TEXT_FORMAT,
+        content_type=content_type,
+        # For files like PDFs or images, we pass `True`, but for a chunked URL text or .txt file we pass `False`.
+        run_as_image=(content_type not in ["text", "url"])
+    )
 
     # Log rewritten chunk for debugging
     console.log("[bold red] Rewritten chunk:\n", rewritten_chunk)
@@ -52,15 +48,62 @@ def rewrite_content(content, content_type):
     return rewritten_chunk
 
 
-def run_llm_call(system_message, content, response_format, content_type):
-    return call_llm(
+def run_generic_flow(
+    *,
+    flow_name: str,
+    prompt_type: PromptType,
+    content: str,
+    tags: list,
+    url_name: str,
+    source_name: str,
+    content_type: str,
+    response_model_class,        # e.g. models.ProblemFlashcard or models.Flashcard
+    anki_template_name: str,     # e.g. "AnkiConnect: Problem" or "AnkiConnect: Basic"
+    message_print_name: str,     # e.g. "problem_solving_flashcards" or "concept_flashcards"
+    anki_media_path: str = None, # only used in concept flow for PDF creation
+):
+    """
+    A generic flow runner that consolidates common steps:
+        1. Optional rewriting of content (for text/url).
+        2. Creating system message.
+        3. Calling the LLM and validating the JSON.
+        4. Filling metadata.
+        5. Printing and importing to Anki.
+    """
+    console.rule(f"Running {flow_name}")
+
+    # Flow-specific rewriting, e.g. for concept flow with plain text or webpage chunks
+    if content_type in ["text", "url"]:
+        content = rewrite_content(content, content_type)
+        # Optionally create PDF if it's plain text for referencing source material within flashcards
+        if content_type == "text" and anki_media_path:
+            format_utils.create_pdf_from_markdown(anki_media_path, source_name, content)
+
+    system_message = create_system_message(prompt_type, tags=tags)
+
+    # Files like PDFs or images → run_as_image = True, else False
+    run_as_image = content_type not in ["text", "url"]
+
+    # Call the LLM
+    response = call_llm(
         system_message=system_message,
         user_content=content,
-        response_format=response_format,
+        response_format=response_model_class,
         content_type=content_type,
-        # For files like PDFs or images, we pass `True`, but for a chunked URL text or .txt file we pass `False`.
-        run_as_image=(content_type not in ["text", "url"])
+        run_as_image=run_as_image
     )
+
+    # Validate and fill metadata
+    validated_model = response_model_class.model_validate_json(response)
+    format_utils.fill_data_fields(validated_model, url_name=url_name, source_name=source_name, content_type=content_type)
+
+    # Print flashcards for debugging
+    format_utils.print_message(message_print_name, validated_model.flashcards, None, None, markdown=False)
+
+    # Import to Anki
+    importer.add_flashcards_to_anki(validated_model, template_name=anki_template_name)
+
+    return validated_model
 
 
 def run_problem_flow(content, tags, url_name, source_name, content_type):
@@ -68,20 +111,18 @@ def run_problem_flow(content, tags, url_name, source_name, content_type):
     Encapsulates the repeated steps for 'problem-solving flow' prompts.
     Returns the validated `ProblemFlashcard` model.
     """
-    console.rule("Running PROBLEM_FLASHCARD Prompt from Problem-solving Flow")
-
-    system_message = create_system_message(PromptType.PROBLEM_SOLVING, tags=tags)
-    response = run_llm_call(system_message, content, models.ProblemFlashcard, content_type)
-
-    # Parse and fill metadata
-    problem_flashcard_model = models.ProblemFlashcard.model_validate_json(response)
-    fill_data_fields(problem_flashcard_model, url_name=url_name, source_name=source_name, content_type=content_type)
-
-    # Display and import
-    format_utils.print_message("problem_flashcards", problem_flashcard_model, None, None, markdown=False)
-    importer.add_flashcards_to_anki(problem_flashcard_model, template_name="AnkiConnect: Problem")
-
-    return problem_flashcard_model
+    return run_generic_flow(
+        flow_name="Problem-solving Flow",
+        prompt_type=PromptType.PROBLEM_SOLVING,
+        content=content,
+        tags=tags,
+        url_name=url_name,
+        source_name=source_name,
+        content_type=content_type,
+        response_model_class=models.ProblemFlashcard,
+        anki_template_name="AnkiConnect: Problem",
+        message_print_name="problem_solving_flashcards"
+    )
 
 
 def run_concept_flow(content, tags, url_name, source_name, content_type, anki_media_path):
@@ -89,25 +130,20 @@ def run_concept_flow(content, tags, url_name, source_name, content_type, anki_me
     Encapsulates the repeated steps for 'concept-based flow' prompts.
     Returns the validated `Flashcard` model (the concept-based flashcard set).
     """
-    console.rule("Running FLASHCARD Prompt from Concepts Flow")
-
-    # Rewrite plain text or url chunks to improve clarity and formatting for the LLM input
-    if content_type == 'text' or content_type == 'url':
-        content = rewrite_content(content, content_type)
-        # Optionally create high-quality pdf from plain text for reference within flashcards
-        format_utils.create_pdf_from_markdown(anki_media_path, source_name, content) if content_type == 'text' else None
-
-    system_message = create_system_message(PromptType.CONCEPTS, tags=tags)
-    concept_response = run_llm_call(system_message, content, models.Flashcard, content_type)
-
-    concept_flashcard_model = models.Flashcard.model_validate_json(concept_response)
-    fill_data_fields(concept_flashcard_model, url_name=url_name, source_name=source_name, content_type=content_type)
-
-    # Display and import
-    format_utils.print_message("flashcard", concept_flashcard_model.flashcards, None, None, markdown=False)
-    importer.add_flashcards_to_anki(concept_flashcard_model, template_name="AnkiConnect: Basic")
-
-    return concept_flashcard_model
+    return run_generic_flow(
+        flow_name="Concepts Flow",
+        prompt_type=PromptType.CONCEPTS,
+        content=content,
+        tags=tags,
+        url_name=url_name,
+        source_name=source_name,
+        content_type=content_type,
+        response_model_class=models.Flashcard,
+        anki_template_name="AnkiConnect: Basic",
+        message_print_name="concept_flashcards",
+        # Provide a rewriting function and media path for PDF generation
+        anki_media_path=anki_media_path
+    )
 
 
 def process_chunked_content(chunks, flashcard_type, tags, url_name, source_name, content_type, anki_media_path=None):

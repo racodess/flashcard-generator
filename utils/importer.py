@@ -279,7 +279,6 @@ def get_notes(flashcards_model, template_name, deck_name):
 
     notes = []
     for fc in flashcards_model.flashcards:
-        # Build fields in a DRY fashion, with only one pass of escaping
         fields = build_fields(fc, flashcards_model)
 
         note = {

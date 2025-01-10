@@ -24,6 +24,17 @@ from utils.templates import ADDITIONAL_CSS
 console = Console()
 
 
+def fill_data_fields(flashcard_obj, url_name, source_name, content_type):
+    """
+    - Adds extra metadata fields to each flashcard as required by the Anki add-on "pdf viewer and editor".
+    """
+    for fc in flashcard_obj.flashcards:
+        fc.data.image = source_name if content_type == "image" else ""
+        fc.data.external_source = source_name if content_type != "image" else ""
+        fc.data.external_page = 1
+        fc.data.url = url_name
+
+
 def create_pdf_from_markdown(collection_media_path: str, file_name: str, text_markdown: str) -> None:
     """
     - For generating high-quality PDFs (currently from a concept map prompt) from plain text .txt files that DO NOT contain URLs.
@@ -77,7 +88,7 @@ def print_message(role, content, response_format, model, markdown):
         "user": "[bold green]User Message",
         "assistant": f"[bold yellow]{model}: Response" if model else "[bold yellow]Assistant",
         "token": "[bold magenta]Token Usage",
-        "flashcard": "[bold orange]Flashcards",
+        "concept_flashcards": "[bold orange]Concept Flashcards",
         "problem_flashcards": "[bold red]Problem Flashcards",
     }
 
@@ -107,7 +118,7 @@ def print_message(role, content, response_format, model, markdown):
         return
 
     # For 'flashcard' or 'problem_flashcards', just pprint
-    if role.lower() in ["flashcard", "problem_flashcards"]:
+    if role.lower() in ["concept_flashcards", "problem_flashcards"]:
         console.rule("Completed Flashcards")
 
         pprint(content, expand_all=True)
