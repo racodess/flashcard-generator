@@ -109,6 +109,7 @@ def process_file(file_path, context):
         url=None,
         metadata=context['metadata'],
         flashcard_type=flashcard_type,
+        anki_media_path=anki_media_path
     )
     return True
 
@@ -149,6 +150,7 @@ def process_url_in_txt(file_path, context):
             url=url,
             metadata=context['metadata'],
             flashcard_type='url',
+            anki_media_path=anki_media_path
         )
         any_generated = True
 

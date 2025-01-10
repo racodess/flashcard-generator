@@ -316,7 +316,9 @@ function show() {
 BASIC_FRONT_TEMPLATE = BASIC_FRONT_MAIN + MARKDOWN_KATEX_SCRIPT + BASIC_FRONT_SCRIPT
 
 BASIC_BACK_MAIN = r"""
-{{FrontSide}}
+{{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u><br><br></pre></div>{{/Header}}
+
+<div id="front"><pre>{{Front}}</pre></div>
 
 <hr id=answer>
 
@@ -580,31 +582,6 @@ function show() {
 """
 
 PROBLEM_TIME_SPACE_BACK_TEMPLATE = PROBLEM_TIME_SPACE_BACK_MAIN + MARKDOWN_KATEX_SCRIPT + PROBLEM_TIME_SPACE_BACK_SCRIPT
-
-PROBLEM_PITFALLS_FRONT_MAIN = r"""
-{{#Approach}}
-{{#Solution}}
-{{#Pitfall 1}}
-
-{{#Problem_URL}}<a href='{{Problem_URL}}' style='text-decoration: underline; font-size: 10px;'>{{Problem}}</a>{{/Problem_URL}}
-
-
-{{#Header}}<div id="header"><pre><strong><u>{{Header}}</strong></u></pre></div>{{/Header}}
-
-<br><br>
-
-<div id="approach"><pre><br><br>{{Approach}}</pre></div>
-
-<div id="solution"><pre><br><br>{{Solution}}</pre></div>
-
-<br><br>
-
-What are the <strong>pitfalls</strong> of this approach's implementation?
-
-{{/Pitfall 1}}
-{{/Solution}}
-{{/Approach}}
-"""
 
 PROBLEM_STEP1_FRONT_MAIN = r"""
 {{#Approach}}

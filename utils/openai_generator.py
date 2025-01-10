@@ -42,6 +42,16 @@ def fill_data_fields(flashcard_obj, url_name, source_name, content_type):
         fc.data.url = url_name
 
 
+def rewrite_content(content, content_type):
+    system_message = create_system_message(PromptType.REWRITE_TEXT)
+    rewritten_chunk = run_llm_call(system_message, content, models.TEXT_FORMAT, content_type)
+
+    # Log rewritten chunk for debugging
+    console.log("[bold red] Rewritten chunk:\n", rewritten_chunk)
+
+    return rewritten_chunk
+
+
 def run_llm_call(system_message, content, response_format, content_type):
     return call_llm(
         system_message=system_message,
@@ -61,7 +71,7 @@ def run_problem_flow(content, tags, url_name, source_name, content_type):
     console.rule("Running PROBLEM_FLASHCARD Prompt from Problem-solving Flow")
 
     system_message = create_system_message(PromptType.PROBLEM_SOLVING, tags=tags)
-    response = run_llm_call(system_message, content, models.ProblemFlashcard, content_type, True)
+    response = run_llm_call(system_message, content, models.ProblemFlashcard, content_type)
 
     # Parse and fill metadata
     problem_flashcard_model = models.ProblemFlashcard.model_validate_json(response)
@@ -74,18 +84,23 @@ def run_problem_flow(content, tags, url_name, source_name, content_type):
     return problem_flashcard_model
 
 
-def run_concept_flow(content, tags, url_name, source_name, content_type):
+def run_concept_flow(content, tags, url_name, source_name, content_type, anki_media_path):
     """
     Encapsulates the repeated steps for 'concept-based flow' prompts.
     Returns the validated `Flashcard` model (the concept-based flashcard set).
     """
     console.rule("Running FLASHCARD Prompt from Concepts Flow")
 
-    # 5) Final flashcards with optimized wording
-    system_message = create_system_message(PromptType.CONCEPTS, tags=tags)
-    response = run_llm_call(system_message, content, models.Flashcard, content_type)
+    # Rewrite plain text or url chunks to improve clarity and formatting for the LLM input
+    if content_type == 'text' or content_type == 'url':
+        content = rewrite_content(content, content_type)
+        # Optionally create high-quality pdf from plain text for reference within flashcards
+        format_utils.create_pdf_from_markdown(anki_media_path, source_name, content) if content_type == 'text' else None
 
-    concept_flashcard_model = models.Flashcard.model_validate_json(response)
+    system_message = create_system_message(PromptType.CONCEPTS, tags=tags)
+    concept_response = run_llm_call(system_message, content, models.Flashcard, content_type)
+
+    concept_flashcard_model = models.Flashcard.model_validate_json(concept_response)
     fill_data_fields(concept_flashcard_model, url_name=url_name, source_name=source_name, content_type=content_type)
 
     # Display and import
@@ -95,24 +110,7 @@ def run_concept_flow(content, tags, url_name, source_name, content_type):
     return concept_flashcard_model
 
 
-def run_url_flow(content, tags, url_name, source_name, content_type):
-    """
-    Encapsulates the repeated steps for 'url-based flow' prompts.
-    Returns the validated `Flashcard` model (the concept-based flashcard set).
-    """
-    console.rule("Running FLASHCARD Prompt from Concepts Flow")
-
-    # 5) Final flashcards with optimized wording
-    system_message = create_system_message(PromptType.REWRITE_TEXT)
-    rewritten_chunk = run_llm_call(system_message, content, models.TEXT_FORMAT, content_type)
-
-    # Log rewritten chunk for debugging
-    console.log("[bold red] Rewritten chunk:\n", rewritten_chunk)
-
-    return run_concept_flow(rewritten_chunk, tags, url_name, source_name, content_type)
-
-
-def process_chunked_content(chunks, flashcard_type, tags, url_name, source_name, content_type):
+def process_chunked_content(chunks, flashcard_type, tags, url_name, source_name, content_type, anki_media_path=None):
     """
     Helper to iterate through chunks (like web sections) or a single chunk (like file content),
     and run either problem-solving or concept-based flows.
@@ -124,24 +122,15 @@ def process_chunked_content(chunks, flashcard_type, tags, url_name, source_name,
         logger.info(f"Generating flashcards from chunk {idx}: {heading_title}")
 
         # Show chunk in console for clarity or debugging unless it's a base64 encoded str
-        console.rule(f"Chunk {idx}: {heading_title}")
+        console.rule(f"[bold red]Chunk {idx}:[/bold red] {heading_title}")
 
         if content_type == "text" or content_type == "json":
             console.print(chunk_text)
         else:
             console.print("Image")
-        print("\n" * 3)
 
         if flashcard_type == 'problem':
             run_problem_flow(
-                content=chunk_text,
-                tags=tags,
-                url_name=url_name,
-                source_name=source_name,
-                content_type=content_type
-            )
-        elif flashcard_type == 'url':
-            run_url_flow(
                 content=chunk_text,
                 tags=tags,
                 url_name=url_name,
@@ -155,6 +144,7 @@ def process_chunked_content(chunks, flashcard_type, tags, url_name, source_name,
                 url_name=url_name,
                 source_name=source_name,
                 content_type=content_type,
+                anki_media_path=anki_media_path
             )
 
 
@@ -163,13 +153,14 @@ def generate_flashcards(
     url=None,
     metadata=None,
     flashcard_type='general',
+    anki_media_path=None,
 ):
     """
     Entry point for generating flashcards:
 
     Inputs:
         - Either a `file_path` or a `url`,
-        - A list of `tags`,
+        - A metadata dict,
         - A `flashcard_type` (`general` or `problem`),
         - The Anki media path.
 
@@ -178,12 +169,6 @@ def generate_flashcards(
             - If `url` is provided, calls `scraper.fetch_and_parse_url(url)`, then extracts text from headings and elements,
             - Else if `file_path` is given, calls `file_utils` to read the file.
             - Logs warnings if unsupported file types or empty content.
-
-        2. Branch by `flashcard_type`:
-            - `problem`:
-                * Use the problem-solving flow prompts
-            - `general` (concept-based):
-                * Use the concept-based flow prompts.
     """
     # Determine content_type and source identifiers
     content_type = "url" if url else "text"
@@ -230,7 +215,7 @@ def generate_flashcards(
         single_chunk = [{"title": source_name, "content": file_content}]
 
         # 4) Process with either problem-flow or concept-flow
-        process_chunked_content(single_chunk, flashcard_type, metadata['local_tags'], url_name, source_name, content_type)
+        process_chunked_content(single_chunk, flashcard_type, metadata['local_tags'], url_name, source_name, content_type, anki_media_path)
         return
 
     else:
