@@ -188,11 +188,11 @@ def read_metadata_tags(directory):
     """
     yaml_data = get_metadata(directory)
 
-    if "anki_tag" not in yaml_data:
-        logger.warning("No 'anki_tag:' key found in metadata.yaml in %s. Proceeding without Anki tags.", directory)
+    if "anki_tags" not in yaml_data:
+        logger.warning("No 'anki_tags:' key found in metadata.yaml in %s. Proceeding without Anki tags.", directory)
         return []
 
-    tags_section = yaml_data["anki_tag"]
+    tags_section = yaml_data["anki_tags"]
 
     # Now recursively flatten that structure:
     flattened_tags = _flatten_tags(tags_section, [])
@@ -210,11 +210,11 @@ def read_metadata_ignore_list(directory):
     """
     yaml_data = get_metadata(directory)
 
-    if "ignore_heading" not in yaml_data:
-        logger.warning("No 'ignore:' key found in metadata.yaml in %s. Proceeding with all extracted headings.", directory)
+    if "ignore_sections" not in yaml_data:
+        logger.warning("No 'ignore_sections:' key found in metadata.yaml in %s. Proceeding with all extracted sections.", directory)
         return []
 
-    ignore_headings = yaml_data["ignore_heading"]
+    ignore_headings = yaml_data["ignore_sections"]
 
     if not isinstance(ignore_headings, list):
         logger.warning("'ignore_heading:' should be a list in metadata.yaml. Found type '%s'.", type(ignore_headings))

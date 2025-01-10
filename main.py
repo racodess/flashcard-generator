@@ -204,8 +204,8 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
 
     for fpath in files:
         metadata = {
-            "local_tags": file_utils.read_metadata_tags(current_directory) if current_directory != directory_path else [],
-            "ignore_headings": file_utils.read_metadata_ignore_list(current_directory) if current_directory != directory_path else [],
+            "anki_tags": file_utils.read_metadata_tags(current_directory) if current_directory != directory_path else [],
+            "ignore_sections": file_utils.read_metadata_ignore_list(current_directory) if current_directory != directory_path else [],
         }
 
         relative_path = os.path.relpath(current_directory, directory_path)

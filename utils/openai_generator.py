@@ -177,7 +177,7 @@ def generate_flashcards(
 
     if url:
         # 1) Fetch and parse URL
-        webpage_data = fetch_and_parse_url(url, metadata['ignore_headings'])
+        webpage_data = fetch_and_parse_url(url, metadata['ignore_sections'])
         if not webpage_data:
             logger.warning("No data returned from URL: %s. Skipping flashcard generation.", url)
             return
@@ -190,7 +190,7 @@ def generate_flashcards(
             return
 
         # 3) Process the chunked content with either problem-flow or concept-flow
-        process_chunked_content(chunks, flashcard_type, metadata['local_tags'], url_name, source_name, content_type)
+        process_chunked_content(chunks, flashcard_type, metadata['anki_tags'], url_name, source_name, content_type)
         return
 
     elif file_path:
@@ -215,7 +215,7 @@ def generate_flashcards(
         single_chunk = [{"title": source_name, "content": file_content}]
 
         # 4) Process with either problem-flow or concept-flow
-        process_chunked_content(single_chunk, flashcard_type, metadata['local_tags'], url_name, source_name, content_type, anki_media_path)
+        process_chunked_content(single_chunk, flashcard_type, metadata['anki_tags'], url_name, source_name, content_type, anki_media_path)
         return
 
     else:
