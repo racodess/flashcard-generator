@@ -1,4 +1,4 @@
-tags:
+anki_tag:
   - The_Odin_Project:
     - The_Web
     - Command_Line
@@ -65,3 +65,14 @@ tags:
       - Forms
       - Data_Handling
       - Authentication
+
+ignore_heading:
+  - Introduction
+  - Lesson overview
+  - Exercise
+  - Assignment
+  - Knowledge check
+  - Additional resources
+  - Quiz
+  - Tasks
+  - Comments

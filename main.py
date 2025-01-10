@@ -107,9 +107,8 @@ def process_file(file_path, context):
     generate_flashcards(
         file_path=new_file_path,
         url=None,
-        tags=context['tags'],
+        metadata=context['metadata'],
         flashcard_type=flashcard_type,
-        anki_media_path=context['anki_media_path'],
     )
     return True
 
@@ -148,9 +147,8 @@ def process_url_in_txt(file_path, context):
         generate_flashcards(
             file_path=None,
             url=url,
-            tags=context['tags'],
-            flashcard_type='general',
-            anki_media_path=context['anki_media_path'],
+            metadata=context['metadata'],
+            flashcard_type='url',
         )
         any_generated = True
 
@@ -203,9 +201,10 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
     processed_something = False
 
     for fpath in files:
-        local_tags = file_utils.read_metadata_tags(current_directory) if current_directory != directory_path else []
-        # Log local tags for debugging
-        console.log("[bold red] Local tags:", local_tags)
+        metadata = {
+            "local_tags": file_utils.read_metadata_tags(current_directory) if current_directory != directory_path else [],
+            "ignore_headings": file_utils.read_metadata_ignore_list(current_directory) if current_directory != directory_path else [],
+        }
 
         relative_path = os.path.relpath(current_directory, directory_path)
         if relative_path == ".":
@@ -215,7 +214,7 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
             'relative_path': relative_path,
             'used_dir': used_dir,
             'anki_media_path': anki_media_path,
-            'tags': local_tags,
+            'metadata': metadata,
         }
 
         ext = os.path.splitext(fpath)[1].lower()

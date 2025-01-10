@@ -4,14 +4,17 @@ Purpose:
 - Deals with textual websites (not images/PDFs).
 - Uses the `trafilatura` to fetch and extract textual HTML, plus `BeautifulSoup` to parse headings.
 """
+from rich.console import Console
 from bs4 import BeautifulSoup
 from trafilatura import fetch_url, extract
 from trafilatura.settings import Extractor
 
 from utils.flashcard_logger import logger
 
+console = Console()
 
-def fetch_and_parse_url(url: str) -> dict:
+
+def fetch_and_parse_url(url: str, ignore_list=None) -> dict:
     """
     - Calls `trafilatura.fetch_url(url)`, then `extract(...)` with some custom `Extractor(...)` settings,
     - Returns a JSON/dict with the URL and a list of “sections,” each of which is a structured representation of headings (H1, H2, etc.) and textual content.
@@ -30,6 +33,16 @@ def fetch_and_parse_url(url: str) -> dict:
 
     soup = BeautifulSoup(extracted_html, "html.parser")
     parsed_sections = parse_headings_to_tree(soup)
+
+    # Log parsed sections before filter for debugging
+    console.log("[bold red] Parsed sections before filtering:",  parsed_sections)
+
+    # Optionally skip headings under `ignore_heading` in metadata.yaml
+    if ignore_list:
+        parsed_sections = skip_headings(parsed_sections, ignore_list)
+
+        # Log parsed sections before filter for debugging
+        console.log("[bold red] Filtered sections:",  parsed_sections)
 
     # Build the final webpage data
     webpage_data = {
@@ -142,7 +155,30 @@ def parse_headings_to_tree(soup) -> list:
     return sections
 
 
-# scraper.py
+def skip_headings(sections: list, ignore_list: list) -> list:
+    """
+    Recursively removes any heading whose content matches one of the ignored headings
+    (case-insensitive). All child nodes of that heading are also removed.
+    """
+    filtered_sections = []
+    lowered_ignores = {s.lower() for s in ignore_list}  # For case-insensitive matching
+
+    for section in sections:
+        if section.get("type") == "heading":
+            heading_text = section.get("content", "").strip().lower()
+            if heading_text in lowered_ignores:
+                # Skip this heading & all its children
+                continue
+            # Otherwise, recursively filter the heading's children
+            children = section.get("children", [])
+            section["children"] = skip_headings(children, ignore_list)
+            filtered_sections.append(section)
+        else:
+            # If it's an 'element' or something else, keep it
+            filtered_sections.append(section)
+
+    return filtered_sections
+
 
 def chunk_webpage(sections: list) -> list[dict]:
     """

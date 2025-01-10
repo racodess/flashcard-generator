@@ -58,21 +58,17 @@ class PromptType(Enum):
     - The different types of LLM prompts,
     - Defined in `prompts.py`.
     """
-    CONCEPT_MAP = "concept_map"
-    CONCEPT_LIST = "concept_list"
-    DRAFT_FLASHCARD = "draft_flashcard"
-    FINAL_FLASHCARD = "final_flashcard"
-    PROBLEM_FLASHCARD = "problem_flashcard"
+    REWRITE_TEXT = "rewrite_text"
+    CONCEPTS = "concepts"
+    PROBLEM_SOLVING = "problem_solving"
 
 """
 - Maps each `PromptType` to some prompt text or template from `prompts.py`.
 """
 PROMPT_TEMPLATES = {
-    PromptType.CONCEPT_MAP: prompts.CONCEPT_MAP_PROMPT,
-    PromptType.CONCEPT_LIST: prompts.CONCEPTS_LIST_PROMPT,
-    PromptType.DRAFT_FLASHCARD: prompts.DRAFT_FLASHCARD_PROMPT,
-    PromptType.FINAL_FLASHCARD: prompts.FINAL_FLASHCARD_PROMPT,
-    PromptType.PROBLEM_FLASHCARD: prompts.PROBLEM_FLASHCARD_PROMPT,
+    PromptType.REWRITE_TEXT: prompts.REWRITE_PROMPT,
+    PromptType.CONCEPTS: prompts.CONCEPT_FLASHCARD_PROMPT,
+    PromptType.PROBLEM_SOLVING: prompts.PROBLEM_FLASHCARD_PROMPT,
 }
 
 

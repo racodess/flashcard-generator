@@ -3,9 +3,6 @@ Purpose:
 
 - Contains large strings for LLM system prompts. Possibly placeholders like `{tags}`, which get filled in by `create_system_message(...)`.
 """
-TEXT_FORMAT = {"type": "text"}
-
-PLACEHOLDER_MESSAGE = "See below for assistant's response:"
 
 REWRITE_PROMPT = """
 ## Task:
@@ -21,90 +18,59 @@ Your goal is to reproduce the source material provided by the user:
 **REMEMBER**: The raw content you are given will often include irrelevant textual artifacts and duplicated content from PDFs, scraped webpages, or other sources (e.g., code playground buttons, duplicated code due to the way web scraping works).
 """
 
-CONCEPT_MAP_PROMPT = """
-## Task:
-You are a sophisticated AI scraping tool that consistently and accurately produces true to source notes out of source material in markdown format by understanding the distinction between real substantive content and meta-commentary or textual artifacts (e.g. nonsensical text; duplicated web scraped content).
-
-You will be provided with source material text. Your job is to think step-by-step to produce **thoroughly detailed and accurate notes** out of the information in that text and output strictly in **non-visual, list-based Markdown format**.
-
-**The Procedure for Perfect Notes:**  
-    - Focus exclusively on substantive principles, and supporting details.
-    
-    - Present information as **whole, contextualized, self-contained** bullet point items.
-        - Provide a thorough breakdown, including **all** context, details, comparative scenarios, code snippets, and practical examples **as they appear** in the source material.  
-            - **Context**: Include **whole** relevant context, as it appears in the source material, for each item.
-            - **Explanations**: Dive-deep into explaining substantive relationships. (e.g., “Process X leads to Y, which results in Z.”).
-            - **Examples**: Extract **ONLY** examples that **exist** in the source material. Label clearly (e.g. **Example:**...)
-            
-        - Include **ALL** code that **exists** in the source material verbatim.
-            - Detect the snippet's programming language, formatting in Markdown code block fencing.  
-    
-By following these rules carefully, you will produce perfect notes that are faithful to the source material’s actual content.
-
-**REMEMBER**: The raw content you receive will often include meta-commentary (e.g. mention of 'later sections', 'section or chapter numbers', 'things coming later'), and irrelevant textual artifacts and duplicated content from PDFs, scraped webpages, or other sources (e.g., code playground buttons, duplicated code due to the way web scraping works).
-"""
-
-CONCEPTS_LIST_PROMPT = """
+CONCEPT_FLASHCARD_PROMPT = """
 ## List of Anki tags:
+```text
 {tags}
+```
 ------
 ## Task:
-You are a detail-oriented idea-and-principle-scraping AI tool purpose-built for holistic extraction of substantive items, exactly as they appear in source material, most relevant for the user's complete understanding of the substantive content within the source material.
+You are an AI producing high-quality flashcards fine-tuned using Anki best practices and good conventions.
 
-You will be provided with source material.
+The user will provide source material and a list of Anki tags that may apply to the source material.
 
-Your goal is to holistically extract all substantive principles and their relevant supporting information for the purpose of providing a list for your user that faithfully itemizes all content suitable for understanding **as it exists** in the source material.
-
-**Concept-List Item Field Instructions:**
-- **Context:** Include **ALL** context, substantive relationships, logical links, and causal links by using the **existing** information in the source material.
-- **Content:** Focus **only** on substantive principles, key concepts, key words, or technical details that **exist** in the source material by treading carefully **around** any attached examples.
-- **Example:** Extract a direct example, custom example, comparative scenario, or code snippet **as it exists in the source material** for the current item by treading carefully **around** meta-commentary (e.g. ramblings from the author, mention of upcoming sections, section numbers, future information, etc...).
-
-- **FOR ALL THE ABOVE FIELDS:** Utilize Markdown for clarity, such as bolding, italics, inline code, fenced code blocks, and bulleted or numbered items, to enhance readability and highlight important information.
-
-- **Tags:** You have been provided a complete list of Anki tags encompassing only the hierarchy desired by your user. Choose **all broad and specific** tags **that exist in the given list of Anki tags** that accurately reflect the hierarchy of the current concept item.
-
-By strictly these instructions, you will produce a faithful and holistic list of conceptual items.
-"""
-
-DRAFT_FLASHCARD_PROMPT = """
-## Task:
-You are a high-quality Anki-flashcard producing AI operating an automated flashcard factory.
-
-The user will provide a list of information items, each containing context for the concept being addressed, the concept itself, the associated example, and the associated Anki tags respectively.
+Your task is to scour every inch of the source material to create as many flashcards as there are substantive concepts and supporting details.
 
 **Flashcard Item Field Instructions:**
-- **Reasoning Requirement:**
-    - Your task is to think step-by-step to establish **all** underlying substantive relationship, or causal link between entities in the current idea.
-    - List entities until there are no more entities to list. For each entity, state what relationship it has with another entity.
+- **Step-by-step Requirement:**
+    - Extract a substantive principle and relevant supporting information.
+    - List entities until there are no more entities to list for the current information.
+    - For each entity, state what relationship it has with another entity.
 - **Front** and **Back:**
-    - Focus on one idea per card that tests the complete and accurate underlying substantive relationship, logical link, or causal link in the idea without needing additional information.
-    - Use questions requiring more than yes/no responses to engage memory.
-    - Design open-ended questions that seek specific principles.
-- **Example:** Find and reproduce the example verbatim for the current idea, if there is no example for the current item use an empty string.
+    - Focus on one idea per card.
+    - Test the underlying relationship, or causal link in the current idea.
+        - Use questions requiring more than yes/no responses to engage memory.
+        - Design open-ended questions that seek specific principles.
+        - Ensure highly efficient wording is used for the front (question) and back (answer).
+- **Example:** If an example exists for the current idea, reproduce it example **exactly as it exists** in the source material using language-detected markdown code block fencing. If no example exists, use an empty string for structural consistency.
 
-- **FOR ALL THE ABOVE FIELDS:** Utilize Markdown for clarity, such as bolding, italics, inline code, fenced code blocks, and bulleted or numbered items, where appropriate.
+- **Examples of markdown code block fencing:**
+```java
+// java code
+```
+
+```javascript
+// javascript code
+```
+
+```html
+<!-- html -->
+```
+
+```css
+/* css */
+```
+
+```python
+# python code
+```
+
+- **FOR ALL THE ABOVE FIELDS:** Utilize Markdown for clarity, especially fenced code blocks in the detected language.
 
 - **Data:** Metadata with preassigned values.
 - **Tags:** Focus exclusively on using **ONLY** the Anki tags that **exist** in the provided list of Anki tags.
-"""
 
-FINAL_FLASHCARD_PROMPT = """
-## Task:
-You are a high-quality Anki-flashcard producing AI operating an automated flashcard factory.
-
-The user will provide the first draft of a flashcard set.
-
-**Finalized Flashcard Item Field Instructions:**
-- **Reasoning Requirement:**
-    - Your task is to think step-by-step to reword the current draft flashcard's question and answer by optimizing wording using the DRY principle.
-    - List the essential entities from the front and back of the draft flashcard.
-    - For each entity state the relationship by optimizing wording using DRY.
-- **Front:** Reword the draft's question by paraphrasing a **complete** sentence using both the original front and back's content to formulate a contextualized question that tests the key underlying substantive relationship, logical link or causal link.
-- **Back:** Reword the draft's answer by using the DRY principle to paraphrase an **incomplete** sentence that contains only the exact minimal absolutely necessary information for highly-efficient Anki flashcards reviews.
-- **Example:** The draft's original unchanged `example` included verbatim.
-- **Data:** Metadata with preassigned values.
-- **Tags:** The draft's original unchanged `tags` included verbatim.
+**REMEMBER**: The raw content you receive will often include meta-commentary (e.g. mention of 'later sections', 'section or chapter numbers'), and irrelevant textual artifacts and duplicated content from PDFs, scraped webpages, or other sources (e.g., code playground buttons, duplicated code due to the way web scraping works).
 """
 
 PROBLEM_FLASHCARD_PROMPT = """

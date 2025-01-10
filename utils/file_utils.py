@@ -15,6 +15,8 @@ import yaml
 import base64
 from PIL import Image
 
+from rich.console import Console
+
 # TODO: Currently handles all PDFs (intentional)
 from pdf2image import convert_from_path
 
@@ -25,6 +27,8 @@ from utils.flashcard_logger import logger
 
 class UnsupportedFileTypeError(Exception):
     """Raised when encountering an unsupported file type."""
+
+console = Console()
 
 # A dict mapping file extensions to a broad "content type".
 EXTENSION_CONTENT_TYPE_MAP = {
@@ -143,12 +147,25 @@ READ_DISPATCH = {
 }
 
 
-def read_metadata_tags(directory):
+def get_metadata(directory):
     """
-    Reads a metadata.yaml file in the given directory, parses the 'tags' section,
-    and returns a list of strings. If metadata.yaml or 'tags:' is missing, returns [].
-    """
+    Expecting something like:
 
+    ```yaml
+    tags:
+      - Python:
+        - Basics:
+          - Syntax
+          - Data_Types
+        - Functions:
+          - Defining
+          - Lambda
+
+    ignore:
+        - Exercises
+        - Summary
+    ```
+    """
     metadata_file = os.path.join(directory, "metadata.yaml")
     if not os.path.isfile(metadata_file):
         logger.warning("No metadata.yaml found in %s.", directory)
@@ -161,25 +178,52 @@ def read_metadata_tags(directory):
             logger.error("Error parsing metadata.yaml in %s: %s", directory, e)
             return []
 
-    # We expect something like:
-    # tags:
-    #   - Python:
-    #     - Basics:
-    #       - Syntax
-    #       - Data_Types
-    #     - Functions:
-    #       - Defining
-    #       - Lambda
-    # ...
-    if "tags" not in yaml_data:
-        logger.warning("No 'tags:' key found in metadata.yaml in %s. Proceeding without Anki tags.", directory)
+    return yaml_data
+
+
+def read_metadata_tags(directory):
+    """
+    Reads a metadata.yaml file in the given directory, parses the 'tags' section,
+    and returns a list of strings. If metadata.yaml or 'tags:' is missing, returns [].
+    """
+    yaml_data = get_metadata(directory)
+
+    if "anki_tag" not in yaml_data:
+        logger.warning("No 'anki_tag:' key found in metadata.yaml in %s. Proceeding without Anki tags.", directory)
         return []
 
-    tags_section = yaml_data["tags"]
+    tags_section = yaml_data["anki_tag"]
 
     # Now recursively flatten that structure:
     flattened_tags = _flatten_tags(tags_section, [])
+
+    # Log local tags for debugging
+    console.log("[bold red] Local tags:", flattened_tags)
+
     return flattened_tags
+
+
+def read_metadata_ignore_list(directory):
+    """
+    Reads the 'ignore' list from metadata.yaml and returns a list of headings to ignore.
+    If 'ignore:' is missing, returns an empty list.
+    """
+    yaml_data = get_metadata(directory)
+
+    if "ignore_heading" not in yaml_data:
+        logger.warning("No 'ignore:' key found in metadata.yaml in %s. Proceeding with all extracted headings.", directory)
+        return []
+
+    ignore_headings = yaml_data["ignore_heading"]
+
+    if not isinstance(ignore_headings, list):
+        logger.warning("'ignore_heading:' should be a list in metadata.yaml. Found type '%s'.", type(ignore_headings))
+        return []
+
+    # Log list of ignored headings for debugging
+    console.log("[bold red] Ignoring headings:", ignore_headings)
+
+    return ignore_headings
 
 
 def _flatten_tags(obj, path_so_far):

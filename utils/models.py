@@ -11,6 +11,7 @@ Purpose:
 from typing import List, Literal
 from pydantic import BaseModel, Field, ConfigDict, ValidationError
 
+TEXT_FORMAT = {"type": "text"}
 
 class Data(BaseModel):
     image: Literal[""]
@@ -46,14 +47,39 @@ class Entity(BaseModel):
     entity: str = Field(
         description="An entity that exists in the source material."
     )
+    model_config = ConfigDict(extra='forbid')
+
+
+class Relationship(BaseModel):
+    entity_outgoing: str = Field(
+        description="An entity with an outgoing relationship to another entity."
+    )
+    entity_incoming: str = Field(
+        description="The entity with the incoming relationship."
+    )
     relationship: str = Field(
-        description="The relationship this entity has with another entity."
+        description="The relationship between the entities."
+    )
+    model_config = ConfigDict(extra='forbid')
+
+
+class Graph(BaseModel):
+    nodes: List[Entity] = Field(
+        description="A list of entities that exists in the source material."
+    )
+    edges: List[Relationship] = Field(
+        description="Relationships between those entities based on the current context."
     )
     model_config = ConfigDict(extra='forbid')
 
 
 class FlashcardItem(BaseModel):
-    entities: List[Entity]
+    information: str = Field(
+        description="The current piece of information with maximum context, exactly as it appears in the source material, being addressed."
+    )
+    knowledge_graph: Graph = Field(
+        description="A knowledge graph based on current piece of information."
+    )
     front: str = Field(
         description="The question."
     )
@@ -61,7 +87,7 @@ class FlashcardItem(BaseModel):
         description="The answer."
     )
     example: str = Field(
-        description="The example."
+        description="The example. Use language-detected markdown code block fencing for code snippets."
     )
     data: Data
     tags: List[str] = Field(
