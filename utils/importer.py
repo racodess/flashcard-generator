@@ -222,16 +222,55 @@ def escape_html_entities(text):
     return html.escape(text, quote=False)
 
 
+def build_fields(fc, flashcards_model):
+    """
+    Construct and return a dict of fields for a single flashcard.
+    The final dict is run once through HTML entity escaping, so we
+    don't scatter repeated calls everywhere.
+    """
+    # 1) Start with common fields from fc.data
+    fields = {
+        "Image": fc.data.image,
+        "external_source": fc.data.external_source,
+        "external_page": str(fc.data.external_page),
+        "url": fc.data.url
+    }
+
+    # 2) Branch for problem flashcards vs. general flashcards
+    if isinstance(fc, models.ProblemFlashcardItem):
+        fields["Header"] = fc.header
+        fields["Problem"] = flashcards_model.problem
+        fields["Problem_URL"] = flashcards_model.problem_url
+        fields["Approach"] = fc.approach
+        fields["Solution"] = fc.solution
+
+        for i, step in enumerate(fc.steps):
+            fields[f"Step {i+1}"] = step.step
+            fields[f"Code {i+1}"] = step.code
+            fields[f"Pitfall {i+1}"] = step.pitfall
+
+        fields["Time"] = fc.time
+        fields["Time Explanation"] = fc.time_explanation
+        fields["Space"] = fc.space
+        fields["Space Explanation"] = fc.space_explanation
+
+    else:
+        # e.g. ConceptFlashcardItem or something else
+        fields["Header"] = flashcards_model.header
+        fields["Front"] = fc.front
+        fields["Back"] = fc.back
+        fields["Example"] = fc.example
+
+    # 3) Now apply HTML escaping to every field in one pass
+    escaped_fields = {k: escape_html_entities(v) for k, v in fields.items()}
+    return escaped_fields
+
+
 def get_notes(flashcards_model, template_name, deck_name):
     """
-    - Converts your internal Pydantic model (`Flashcard`, `ProblemFlashcard`, etc.) to the format Anki expects.
-    - Each flashcard is converted to a note dictionary containing fields like “Front”, “Back”, “Image”, etc.
-    - Duplicate notes are allowed by default due to Anki flagging the "note types" created by this application as having duplicate fields, which is intentional but erroneous behavior.
-
-    :param flashcards_model: The flashcards model (e.g., Concept or Problem).
-    :param template_name: The name of the Anki note type (model) to use.
-    :param deck_name: The name of the deck to place notes in.
-    :return: A tuple of (notes, deck_name).
+    - Converts your internal Pydantic model (`Flashcard`, `ProblemFlashcard`, etc.)
+      to the format Anki expects.
+    - Returns a tuple of (notes, deck_name).
     """
     ensure_template_exists(template_name)
 
@@ -240,42 +279,14 @@ def get_notes(flashcards_model, template_name, deck_name):
 
     notes = []
     for fc in flashcards_model.flashcards:
-        fields = {
-            "Image": fc.data.image,
-            "external_source": fc.data.external_source,
-            "external_page": str(fc.data.external_page),
-            "url": fc.data.url,
-        }
-
-        if isinstance(fc, models.ProblemFlashcardItem):
-            fields["Header"] = fc.header
-            fields["Problem"] = flashcards_model.problem
-            fields["Problem_URL"] = flashcards_model.problem_url
-            fields["Approach"] = fc.approach
-            fields["Solution"] = escape_html_entities(fc.solution)
-
-            for i, step in enumerate(fc.steps):
-                fields[f"Step {i+1}"] = step.step
-                fields[f"Code {i+1}"] = escape_html_entities(step.code)
-                fields[f"Pitfall {i+1}"] = step.pitfall
-
-            fields["Time"] = fc.time
-            fields["Time Explanation"] = fc.time_explanation
-            fields["Space"] = fc.space
-            fields["Space Explanation"] = fc.space_explanation
-        else:
-            fields["Header"] = flashcards_model.header
-            fields["Front"] = fc.front
-            fields["Back"] = fc.back
-            fields["Example"] = escape_html_entities(fc.example)
+        # Build fields in a DRY fashion, with only one pass of escaping
+        fields = build_fields(fc, flashcards_model)
 
         note = {
             "deckName": deck_name,
             "modelName": template_name,
             "fields": fields,
-            "options": {
-                "allowDuplicate": True
-            },
+            "options": {"allowDuplicate": True},
             "tags": fc.tags
         }
         notes.append(note)
