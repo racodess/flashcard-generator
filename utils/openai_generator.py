@@ -19,7 +19,7 @@ import os
 
 from rich.console import Console
 
-from utils import models, format_utils, file_utils, importer
+from utils import models, format_utils, file_utils, importer, templates
 from utils.llm_utils import (
     PromptType,
     create_system_message,
@@ -120,7 +120,7 @@ def run_problem_flow(content, tags, url_name, source_name, content_type):
         source_name=source_name,
         content_type=content_type,
         response_model_class=models.ProblemFlashcard,
-        anki_template_name="AnkiConnect: Problem",
+        anki_template_name=templates.PROBLEM_CARD_NAME,
         message_print_name="problem_solving_flashcards"
     )
 
@@ -139,7 +139,7 @@ def run_concept_flow(content, tags, url_name, source_name, content_type, anki_me
         source_name=source_name,
         content_type=content_type,
         response_model_class=models.Flashcard,
-        anki_template_name="AnkiConnect: Basic",
+        anki_template_name=templates.BASIC_CARD_NAME,
         message_print_name="concept_flashcards",
         # Provide a rewriting function and media path for PDF generation
         anki_media_path=anki_media_path

@@ -62,7 +62,7 @@ def _invoke(action, **params):
         ) as response:
             data = json.load(response)
     except Exception as e:
-        logger.error("Failed to communicate with AnkiConnect. Make sure the Anki application is open on this system: %s", e)
+        logger.error("Failed to communicate with AnkiConnect. Make sure the Anki application is open on this system and the AnkiConnect add-on is installed: %s", e)
         raise
 
     if len(data) != 2:

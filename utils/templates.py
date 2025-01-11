@@ -3,9 +3,9 @@ Purpose:
 
 - Contains the HTML or CSS markup used by Anki "note types" (flashcard templates).
 """
-BASIC_CARD_NAME = "AnkiConnect: Basic"
+BASIC_CARD_NAME = "fcGen: Basic"
 
-PROBLEM_CARD_NAME = "AnkiConnect: Problem"
+PROBLEM_CARD_NAME = "fcGen: Problem-Solving"
 
 BASIC_TEMPLATE_FIELDS = [
     "Header",
