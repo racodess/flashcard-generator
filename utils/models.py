@@ -20,65 +20,9 @@ class Data(BaseModel):
     url: Literal[""]
 
 
-class ConceptItem(BaseModel):
-    context: str = Field(
-        description="One comprehensive paragraph of context for the concept item."
-    )
-    concept: str = Field(
-        description="The current concept item cited verbatim from the source material."
-    )
-    example: str = Field(
-        description="The applicable example (formatted in markdown with code block fencing for code snippets) that **must exist** and is reproduced verbatim as it appears in the concept map. **DO NOT** create your own examples. **DO NOT** use external examples."
-    )
-    tags: List[str] = Field(
-        description="The list of Anki tags. **DO NOT** create your own tags. **DO NOT** use external tags."
-    )
-    model_config = ConfigDict(extra='forbid')
-
-
-class Concepts(BaseModel):
-    concepts: List[ConceptItem] = Field(
-        description="A list of concept items cited verbatim from the source material and formatted in markdown."
-    )
-    model_config = ConfigDict(extra='forbid')
-
-
-class Entity(BaseModel):
-    entity: str = Field(
-        description="An entity that exists in the source material."
-    )
-    model_config = ConfigDict(extra='forbid')
-
-
-class Relationship(BaseModel):
-    entity_outgoing: str = Field(
-        description="An entity with an outgoing relationship to another entity."
-    )
-    entity_incoming: str = Field(
-        description="The entity with the incoming relationship."
-    )
-    relationship: str = Field(
-        description="The relationship between the entities."
-    )
-    model_config = ConfigDict(extra='forbid')
-
-
-class Graph(BaseModel):
-    nodes: List[Entity] = Field(
-        description="A list of entities that exists in the source material."
-    )
-    edges: List[Relationship] = Field(
-        description="Relationships between those entities based on the current context."
-    )
-    model_config = ConfigDict(extra='forbid')
-
-
 class FlashcardItem(BaseModel):
     information: str = Field(
         description="The current piece of information with maximum context, exactly as it appears in the source material, being addressed."
-    )
-    knowledge_graph: Graph = Field(
-        description="A knowledge graph based on current piece of information."
     )
     front: str = Field(
         description="The question in markdown format. Use (`) for inline code, and language-detected code-block fencing for code snippets."
