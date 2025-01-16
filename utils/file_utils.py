@@ -17,10 +17,7 @@ from PIL import Image
 
 from rich.console import Console
 
-# TODO: Currently handles all PDFs (intentional)
 from pdf2image import convert_from_path
-
-# TODO: Currently unused (intentional)
 from pdfminer.high_level import extract_text
 
 from utils.flashcard_logger import logger
@@ -43,7 +40,6 @@ EXTENSION_CONTENT_TYPE_MAP = {
 }
 
 
-# TODO: Subject to change; There is no special flow to handle JSON data (beyond reading it), Multi-page PDFs (only the first page), Video/Audio or any other formats
 def get_content_type(file_path: str, url: str = None) -> str:
     """
     - If `url` is provided, returns `'url'`;
@@ -116,8 +112,6 @@ def read_pdf_file(file_path: str) -> str:
     return ""
 
 
-# TODO: Currently handles all PDFs (intentional)
-# TODO: Implement document segmentation using Aryn
 def convert_doc_to_images(path: str):
     """
     - Convert PDF into a list of images (one per page).
@@ -126,25 +120,12 @@ def convert_doc_to_images(path: str):
     return convert_from_path(path)
 
 
-# TODO: Currently unused (intentional)
-# TODO: Implement document segmentation using Aryn
 def extract_text_from_doc(path: str) -> str:
     """
     - Extract text from a PDF via pdfminer.
     - Currently all PDFs are intentionally handled as images.
     """
     return extract_text(path)
-
-"""
-- A dict that maps `'text'`, `'json'`, `'image'`, and `'pdf'` to specific reader functions.  
-- This design is a dispatcher pattern, where you pick a function based on a “content type” key.
-"""
-READ_DISPATCH = {
-    'text': read_text_file,
-    'json': read_json_file,
-    'image': read_image_file,
-    'pdf': read_pdf_file
-}
 
 
 def get_metadata(directory):
@@ -269,3 +250,11 @@ def _flatten_tags(obj, path_so_far):
         results.append("::".join(path_so_far + [str(obj)]))
 
     return results
+
+
+READ_DISPATCH = {
+    'text': read_text_file,
+    'json': read_json_file,
+    'image': read_image_file,
+    'pdf': read_pdf_file
+}

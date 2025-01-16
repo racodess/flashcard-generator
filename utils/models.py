@@ -81,13 +81,13 @@ class FlashcardItem(BaseModel):
         description="A knowledge graph based on current piece of information."
     )
     front: str = Field(
-        description="The question."
+        description="The question in markdown format. Use (`) for inline code, and language-detected code-block fencing for code snippets."
     )
     back: str = Field(
-        description="The answer."
+        description="The answer in markdown format. Use (`) for inline code, and language-detected code-block fencing for code snippets."
     )
     example: str = Field(
-        description="The example. Use language-detected markdown code block fencing for code snippets."
+        description = "The example in markdown format. Use (`) for inline code, and language-detected code-block fencing for code snippets."
     )
     data: Data
     tags: List[str] = Field(
@@ -98,7 +98,7 @@ class FlashcardItem(BaseModel):
 
 class Flashcard(BaseModel):
     flashcards: List[FlashcardItem] = Field(
-        description="A list of flashcards derived from concept items."
+        description="A list of markdown-formatted flashcards derived from concept items."
     )
     header: str = Field(
         description=(

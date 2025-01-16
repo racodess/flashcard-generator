@@ -42,33 +42,36 @@ Your task is to scour every inch of the source material to create as many flashc
         - Use questions requiring more than yes/no responses to engage memory.
         - Design open-ended questions that seek specific principles.
         - Ensure highly efficient wording is used for the front (question) and back (answer).
-- **Example:** If an example exists for the current idea, reproduce it example **exactly as it exists** in the source material using language-detected markdown code block fencing. If no example exists, use an empty string for structural consistency.
-
-- **Examples of markdown code block fencing:**
-```java
-// java code
-```
-
-```javascript
-// javascript code
-```
-
-```html
-<!-- html -->
-```
-
-```css
-/* css */
-```
-
-```python
-# python code
-```
-
-- **FOR ALL THE ABOVE FIELDS:** Utilize Markdown for clarity, especially fenced code blocks in the detected language.
-
+- **Example:** If an example exists for the current idea, reproduce it example **exactly as it exists** in the source material.
 - **Data:** Metadata with preassigned values.
 - **Tags:** Focus exclusively on using **ONLY** the Anki tags that **exist** in the provided list of Anki tags.
+
+- **Ensure use of markdown:**
+    - Use backticks (`) for **all** inline code
+    - Fenced language-detected code blocks for code snippets in **all** fields.
+    - Use markdown ordered/unordered lists so that list items appropriately appear on new lines.
+    - **Examples of markdown code block fencing:**
+    ```java
+    // java code
+    ```
+
+    ```javascript
+    // javascript code
+    ```
+
+    ```html
+    <!-- html -->
+    ```
+
+    ```css
+    /* css */
+    ```
+
+    ```python
+    # python code
+    ```
+    - **Examples of inline markdown:**
+    `<div class=display>Hello World!</div>`, `.display`, `div.innerHTML`, `someVariable`, `HashMap`, `this`, `int`
 
 **REMEMBER**: The raw content you receive will often include meta-commentary (e.g. mention of 'later sections', 'section or chapter numbers'), and irrelevant textual artifacts and duplicated content from PDFs, scraped webpages, or other sources (e.g., code playground buttons, duplicated code due to the way web scraping works).
 """

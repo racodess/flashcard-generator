@@ -23,13 +23,13 @@ def fetch_and_parse_url(url: str, ignore_list=None) -> dict:
     downloaded_html = fetch_url(url)
     if not downloaded_html:
         logger.error("Failed to download content from %s", url)
-        return None
+        return {}
 
     options = Extractor(output_format="html", with_metadata=True)
     extracted_html = extract(downloaded_html, options=options)
     if not extracted_html:
         logger.warning("No textual content extracted from %s", url)
-        return None
+        return {}
 
     soup = BeautifulSoup(extracted_html, "html.parser")
     parsed_sections = parse_headings_to_tree(soup)
@@ -80,12 +80,12 @@ def parse_headings_to_tree(soup) -> list:
             "children": []
         }
 
-    def create_element_object(tag, text, attrs=None):
+    def create_element_object(tag, text, attr=None):
         return {
             "type": "element",
             "tag": tag,
             "content": text,
-            "attrs": attrs or {}
+            "attr": attr or {}
         }
 
     container = soup.body if soup.body else soup

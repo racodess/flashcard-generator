@@ -19,8 +19,12 @@ import html
 import json
 import urllib.request
 
+from rich.console import Console
+
 from utils.flashcard_logger import logger
 from utils import models, templates
+
+console = Console()
 
 
 def _request(action, **params):
@@ -263,6 +267,7 @@ def build_fields(fc, flashcards_model):
 
     # 3) Now apply HTML escaping to every field in one pass
     escaped_fields = {k: escape_html_entities(v) for k, v in fields.items()}
+
     return escaped_fields
 
 
