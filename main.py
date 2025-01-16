@@ -127,7 +127,6 @@ def process_url_in_txt(file_path, context):
     Returns:
         bool indicating if flashcards were generated.
     """
-    file_name = os.path.basename(file_path)
     new_file_path = move_file(file_path, context['used_dir'], context)
 
     # Read lines to find URLs
