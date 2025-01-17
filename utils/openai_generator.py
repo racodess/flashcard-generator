@@ -26,7 +26,7 @@ from utils.llm_utils import (
     call_llm
 )
 from utils.flashcard_logger import logger
-from utils.scraper import fetch_and_parse_url, chunk_webpage
+from utils.scraper import fetch_and_parse_url
 
 console = Console()
 
@@ -151,12 +151,15 @@ def process_chunked_content(chunks, flashcard_type, tags, url_name, source_name,
     Helper to iterate through chunks (like web sections) or a single chunk (like file content),
     and run either problem-solving or concept-based flows.
     """
+
+    console.rule(f"[bold red]Extracted and Filtered Webpage Data[/bold red]")
+    console.log(f"[bold red]Chunks:[/bold red]", chunks)
+
     for idx, chunk in enumerate(chunks, start=1):
         heading_title = chunk.get("title", source_name)  # fallback for file-based chunk
         chunk_text = chunk["content"]
 
         logger.info(f"Generating flashcards from chunk {idx}: {heading_title}")
-
         # Show chunk in console for clarity or debugging unless it's a base64 encoded str
         console.rule(f"[bold red]Chunk {idx}:[/bold red] {heading_title}")
 
@@ -212,32 +215,23 @@ def generate_flashcards(
     source_name = os.path.basename(file_path) if file_path else ""
 
     if url:
-        # 1) Fetch and parse URL
+        # Fetch and parse URL
         webpage_data = fetch_and_parse_url(url, metadata['ignore_sections'])
         if not webpage_data:
             logger.warning("No data returned from URL: %s. Skipping flashcard generation.", url)
             return
-
-        # 2) Chunk the webpage
-        sections = webpage_data.get("sections", [])
-        chunks = chunk_webpage(sections)
-        if not chunks:
-            logger.warning("No chunked headings found for URL: %s", url)
-            return
-
-        # 3) Process the chunked content with either problem-flow or concept-flow
+        # Process the chunked content with either problem-flow or concept-flow
+        chunks = webpage_data.get("sections", [])
         process_chunked_content(chunks, flashcard_type, metadata['anki_tags'], url_name, source_name, content_type)
         return
-
     elif file_path:
-        # 1) Identify content type
+        # Identify content type
         detected_type = file_utils.get_content_type(file_path, url=None)
         if detected_type == 'unsupported':
             logger.warning("Unsupported file type: %s. Skipping flashcard generation.", file_path)
             return
         content_type = detected_type.lower()
-
-        # 2) Read the file
+        # Read the file
         try:
             file_content = file_utils.process_data(file_path, content_type)
         except file_utils.UnsupportedFileTypeError as e:
@@ -246,14 +240,11 @@ def generate_flashcards(
         except Exception as e:
             logger.error("Error reading file %s: %s", file_path, e)
             return
-
-        # 3) For simplicity, treat the entire file as a single "chunk"
-        single_chunk = [{"title": source_name, "content": file_content}]
-
-        # 4) Process with either problem-flow or concept-flow
-        process_chunked_content(single_chunk, flashcard_type, metadata['anki_tags'], url_name, source_name, content_type, anki_media_path)
+        # Process with either problem-flow or concept-flow
+        # For simplicity, treat the entire file as a single "chunk"
+        chunk = [{"title": source_name, "content": file_content}]
+        process_chunked_content(chunk, flashcard_type, metadata['anki_tags'], url_name, source_name, content_type, anki_media_path)
         return
-
     else:
         logger.error("Neither file_path nor url provided to generate_flashcards.")
         return
