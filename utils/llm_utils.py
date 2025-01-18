@@ -104,7 +104,7 @@ def call_llm(
     if run_as_image:
         console.log(f"[bold cyan]Messages sent to `{model}`:[/bold cyan]", "Image (excluded base64 for brevity)")
     else:
-        console.log(f"[bold cyan]Messages sent to `{model}`:[/bold cyan]", messages)
+        console.log(f"[bold cyan]Messages sent to `{model}`:[/bold cyan]", "Convo_hist" if not messages else messages)
     # Send the request to the LLM
     try:
         completion = client.beta.chat.completions.parse(
@@ -123,8 +123,14 @@ def call_llm(
 
     convo_hist.append({"role": "assistant", "content": response})
 
+    if not run_as_image:
+        print_log("Conversation history BEFORE pruning", model, completion.usage)
+
     if len(convo_hist) > 4:
         del convo_hist[1:3]
+
+    if not run_as_image:
+        print_log("Conversation history AFTER pruning", model, completion.usage)
 
     # Log assistant response
     console.log(f"[bold yellow]`{model}` response:[/bold yellow]\n")
@@ -137,3 +143,15 @@ def call_llm(
     console.log("[bold green]Token Usage:[/bold green]", usage_info)
 
     return response
+
+
+def print_log(
+        name: str,
+        model: str,
+        token_usage: dict
+) -> None:
+    console.rule(f"[bold red]{name}[/bold red]")
+    console.log("\n[bold cyan]System message:[/bold cyan]\n", convo_hist[0]['content'])
+    console.log("\n[bold cyan]User message:[/bold cyan]\n", convo_hist[-2]['content'])
+    console.log(f"\n[bold yellow]{model} response:[/bold yellow]\n", convo_hist[-1]['content'])
+    console.log("\n[bold red]Token usage:[/bold red]\n", token_usage)
