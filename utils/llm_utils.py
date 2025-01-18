@@ -18,18 +18,6 @@ from openai import OpenAI
 """
 OpenAI LLM references:
 
-- GPT-o1:
-    - Not currently used,
-    - Chain-of-thought model,
-    - High cost,
-    - Highest-quality output.
-    
-- GPT-o1-mini:
-    - Not currently used,
-    - Chain-of-thought model,
-    - Moderate cost, but pricier than GPT-4o,
-    - Higher-quality output.
-    
 - GPT-4o:
     - Currently used for image analysis,
     - Handles images in a reasonable amount of tokens,
@@ -44,13 +32,11 @@ OpenAI LLM references:
     - Fastest,
     - Good-quality output.
 """
-GPT_O1 = "o1-2024-12-17"
-GPT_O1_MINI = "o1-mini-2024-09-12"
-GPT_4O = "gpt-4o-2024-08-06"
-GPT_4O_MINI = "gpt-4o-mini"
 
 console = Console()
 client = OpenAI()
+
+convo_hist = []
 
 
 class PromptType(Enum):
@@ -73,9 +59,6 @@ PROMPT_TEMPLATES = {
 
 
 def create_system_message(prompt_type: PromptType, **kwargs) -> str:
-    """
-    - Formats the relevant prompt template (in `PROMPT_TEMPLATES`) with additional context (e.g. local tags, previous responses), returning the final “system message” for the LLM.
-    """
     template = PROMPT_TEMPLATES.get(prompt_type, "")
     return template.format(**kwargs)
 
@@ -87,81 +70,69 @@ def call_llm(
     content_type: str,
     run_as_image: bool = False,
 ):
-    """
-    Builds the message list with:
+    global convo_hist
+    messages = []
 
-    - A “system” message (from `create_system_message`)
-    - A “user” message, which can be either raw text or base64 encoded image if `run_as_image=True`
-    - Sends the request to the LLM using OpenAI's `client.beta.chat.completions.parse` API for structured output using Pydantic models defined in `models.py`
-    - Extracts the best text result from the LLM, logs usage, returns the string
-    """
-    # Decide model based on whether we need "image analysis" or not
-    model = GPT_4O if run_as_image else GPT_4O_MINI
+    gpt_4o = "gpt-4o-2024-08-06"
+    gpt_4o_mini = "gpt-4o-mini"
 
-    # Build message list
-    messages = [{"role": "system", "content": system_message}]
+    model = gpt_4o if run_as_image else gpt_4o_mini
 
+
+    # Append the user message
     if run_as_image:
-        # Treat user content as an "image request" structure required by OpenAI API
+        # For images, we pass a structured "image_url" message
+        messages.append({"role": "system", "content": system_message})
         messages.append(
             {
                 "role": "user",
                 "content": [
                     {
                         "type": "image_url",
-                        "image_url": {
-                            "url": f"{user_content}"
-                        }
+                        "image_url": {"url": f"{user_content}"}
                     }
-                ]
+                ],
             }
         )
     else:
         # Normal text content
-        messages.append({"role": "user", "content": user_content})
+        if not convo_hist:
+            convo_hist.append({"role": "system", "content": system_message})
 
-    # Log input message sent to AI model except base64 encodings to prevent overloading the console
+        convo_hist.append({"role": "user", "content": user_content})
+    # Log the final user-facing messages we send to the LLM (except raw base64 to avoid console clutter)
     if run_as_image:
-        console.log(f"[bold cyan]Messages sent to `{model}`:[/bold cyan]", "Image as base64 encoded string")
+        console.log(f"[bold cyan]Messages sent to `{model}`:[/bold cyan]", "Image (excluded base64 for brevity)")
     else:
         console.log(f"[bold cyan]Messages sent to `{model}`:[/bold cyan]", messages)
-
+    # Send the request to the LLM
     try:
-        completion = client.beta.chat.completions.parse( # For structured output using pydantic models
-            model=model, # OpenAI LLM
-            messages=messages, # Conversation history
-            response_format=response_format, # For text or structured output
-            max_completion_tokens=16384, # Input+output can use quite a lot of tokens; ensures we stay within "max output token" limit of GPT-4o & GPT-4o-mini, but o1 models go much higher.
-            temperature=0, # For deterministic output
-            top_p=0.1, # For deterministic output; chooses within the top 10% most likely tokens
+        completion = client.beta.chat.completions.parse(
+            model=model,
+            messages=messages if run_as_image else convo_hist,
+            response_format=response_format,
+            max_completion_tokens=16384,
+            temperature=0,
+            top_p=0.1,
         )
     except Exception as e:
         logger.error("Error calling LLM for content_type='%s': %s", content_type, e, exc_info=True)
         raise
-
-    if not completion.choices:
-        logger.warning("No completion choices returned for content_type='%s'.", content_type)
-        return ""
-
-    finish_reason = completion.choices[0].finish_reason
-    if finish_reason != "stop":
-        logger.warning(
-            "LLM finished processing content_type='%s' with reason: %s",
-            content_type, finish_reason
-        )
-
     # Extract final text response
     response = completion.choices[0].message.content
 
-    # Log assistant response based on message history
+    convo_hist.append({"role": "assistant", "content": response})
+
+    if len(convo_hist) > 4:
+        del convo_hist[1:3]
+
+    # Log assistant response
+    console.log(f"[bold yellow]`{model}` response:[/bold yellow]\n")
     if response_format == "text":
-        console.log(f"[bold yellow]`{model}` response:[/bold yellow]\n")
         format_utils.print_message("assistant", response, None, None, markdown=True)
     else:
-        console.log(f"[bold yellow]`{model}` response:[/bold yellow]\n")
         format_utils.print_message("assistant", response, response_format, None, markdown=False)
-
-    # Log token usage info
+    # Log token usage
     usage_info = completion.usage
     console.log("[bold green]Token Usage:[/bold green]", usage_info)
 

@@ -30,24 +30,6 @@ from utils.scraper import fetch_and_parse_url
 
 console = Console()
 
-
-def rewrite_content(content, content_type):
-    system_message = create_system_message(PromptType.REWRITE_TEXT)
-    rewritten_chunk = call_llm(
-        system_message=system_message,
-        user_content=content,
-        response_format=models.TEXT_FORMAT,
-        content_type=content_type,
-        # For files like PDFs or images, we pass `True`, but for a chunked URL text or .txt file we pass `False`.
-        run_as_image=(content_type not in ["text", "url"])
-    )
-
-    # Log rewritten chunk for debugging
-    console.log("[bold red] Rewritten chunk:\n", rewritten_chunk)
-
-    return rewritten_chunk
-
-
 def run_generic_flow(
     *,
     flow_name: str,
@@ -62,14 +44,6 @@ def run_generic_flow(
     message_print_name: str,     # e.g. "problem_solving_flashcards" or "concept_flashcards"
     anki_media_path: str = None, # only used in concept flow for PDF creation
 ):
-    """
-    A generic flow runner that consolidates common steps:
-        1. Optional rewriting of content (for text/url).
-        2. Creating system message.
-        3. Calling the LLM and validating the JSON.
-        4. Filling metadata.
-        5. Printing and importing to Anki.
-    """
     console.rule(f"Running {flow_name}")
 
     # Flow-specific rewriting, e.g. for concept flow with plain text or webpage chunks
@@ -107,10 +81,6 @@ def run_generic_flow(
 
 
 def run_problem_flow(content, tags, url_name, source_name, content_type):
-    """
-    Encapsulates the repeated steps for 'problem-solving flow' prompts.
-    Returns the validated `ProblemFlashcard` model.
-    """
     return run_generic_flow(
         flow_name="Problem-solving Flow",
         prompt_type=PromptType.PROBLEM_SOLVING,
@@ -126,10 +96,6 @@ def run_problem_flow(content, tags, url_name, source_name, content_type):
 
 
 def run_concept_flow(content, tags, url_name, source_name, content_type, anki_media_path):
-    """
-    Encapsulates the repeated steps for 'concept-based flow' prompts.
-    Returns the validated `Flashcard` model (the concept-based flashcard set).
-    """
     return run_generic_flow(
         flow_name="Concepts Flow",
         prompt_type=PromptType.CONCEPTS,
@@ -146,12 +112,22 @@ def run_concept_flow(content, tags, url_name, source_name, content_type, anki_me
     )
 
 
-def process_chunked_content(chunks, flashcard_type, tags, url_name, source_name, content_type, anki_media_path=None):
-    """
-    Helper to iterate through chunks (like web sections) or a single chunk (like file content),
-    and run either problem-solving or concept-based flows.
-    """
+def rewrite_content(content, content_type):
+    system_message = create_system_message(PromptType.REWRITE_TEXT)
+    rewritten_chunk = call_llm(
+        system_message=system_message,
+        user_content=content,
+        response_format=models.TEXT_FORMAT,
+        content_type=content_type,
+        # For files like PDFs or images, we pass `True`, but for a chunked URL text or .txt file we pass `False`.
+        run_as_image=(content_type not in ["text", "url"])
+    )
+    # Log rewritten chunk for debugging
+    console.log("[bold red] Rewritten chunk:\n", rewritten_chunk)
+    return rewritten_chunk
 
+
+def process_chunked_content(chunks, flashcard_type, tags, url_name, source_name, content_type, anki_media_path=None):
     console.rule(f"[bold red]Extracted and Filtered Webpage Data[/bold red]")
     console.log(f"[bold red]Chunks:[/bold red]", chunks)
 
@@ -194,21 +170,6 @@ def generate_flashcards(
     flashcard_type='general',
     anki_media_path=None,
 ):
-    """
-    Entry point for generating flashcards:
-
-    Inputs:
-        - Either a `file_path` or a `url`,
-        - A metadata dict,
-        - A `flashcard_type` (`general` or `problem`),
-        - The Anki media path.
-
-    Steps:
-        1. Get content:
-            - If `url` is provided, calls `scraper.fetch_and_parse_url(url)`, then extracts text from headings and elements,
-            - Else if `file_path` is given, calls `file_utils` to read the file.
-            - Logs warnings if unsupported file types or empty content.
-    """
     # Determine content_type and source identifiers
     content_type = "url" if url else "text"
     url_name = url if url else ""
