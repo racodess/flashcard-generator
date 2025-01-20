@@ -1,15 +1,11 @@
 """
-Purpose:
-
-- Contains Pydantic classes (`Flashcard`, `ProblemFlashcard`, etc.) that define the JSON schema for structured output from OpenAI API calls.
-
+Contains Pydantic classes (`Flashcard`, `ProblemFlashcard`, etc.) that define the JSON schema for structured output from OpenAI API calls.
 
 **Important Note:**
-
 - Requires the use of client.beta.chat.completions.parse from the OpenAI API.
 """
 from typing import List, Literal
-from pydantic import BaseModel, Field, ConfigDict, ValidationError
+from pydantic import BaseModel, Field, ConfigDict
 
 TEXT_FORMAT = {"type": "text"}
 

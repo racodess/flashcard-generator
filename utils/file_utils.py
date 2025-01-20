@@ -1,12 +1,10 @@
 """
-Purpose:
-
-- File utilities:
-    - Determining file type from the extension
-    - Reading the file content accordingly: text, JSON, images, PDF
-    - Converting PDFs to images (using `pdf2image.convert_from_path`)
-    - Base64 encoding of Images as required by the OpenAI API
-    - Handling unsupported file types with a custom `UnsupportedFileTypeError`
+File utilities:
+- Determining file type from the extension
+- Reading the file content accordingly: text, JSON, images, PDF
+- Converting PDFs to images (using `pdf2image.convert_from_path`)
+- Base64 encoding of Images as required by the OpenAI API
+- Handling unsupported file types with a custom `UnsupportedFileTypeError`
 """
 import os
 import io
@@ -40,21 +38,7 @@ EXTENSION_CONTENT_TYPE_MAP = {
 }
 
 
-def get_content_type(file_path: str, url: str = None) -> str:
-    """
-    - If `url` is provided, returns `'url'`;
-    - Else extracts file extension and returns `'unsupported'` if it’s not recognized.
-    """
-    if url:
-        return 'url'
-    if file_path:
-        _, ext = os.path.splitext(file_path)
-        ext = ext.lower()
-        return EXTENSION_CONTENT_TYPE_MAP.get(ext, 'unsupported')
-    return 'unsupported'
-
-
-def process_data(file_path: str, content_type: str):
+def get_data(file_path: str, content_type: str):
     """
     - Looks up the appropriate function in `READ_DISPATCH` and returns its result.
     - Raises a custom `UnsupportedFileTypeError` exception if content type is unsupported.
@@ -70,104 +54,12 @@ def process_data(file_path: str, content_type: str):
         raise
 
 
-def get_img_uri(img: Image.Image) -> str:
-    """
-    - Takes a PIL Image, writes it to an in-memory buffer as PNG, base64-encodes it, and returns the base64 string.
-    - This is used by `file_utils` to handle images.
-    """
-    png_buffer = io.BytesIO()
-    img.save(png_buffer, format="PNG")
-    png_buffer.seek(0)
-    base64_png = base64.b64encode(png_buffer.read()).decode('utf-8')
-    return f"data:image/png;base64,{base64_png}"
-
-
-"""
-Reader Functions:
-
-- `read_text_file(...)` – opens the file, returns the text.
-- `read_json_file(...)` – deserializes JSON to a Python object.
-- `read_image_file(...)` – returns a base64-encoded image URI required by the OpenAI completions API.
-- `read_pdf_file(...)` – converts the first PDF page into a base64 PNG image.
-"""
-def read_text_file(file_path: str) -> str:
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return f.read()
-
-
-def read_json_file(file_path: str):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-
-def read_image_file(file_path: str) -> str:
-    img = Image.open(file_path)
-    return get_img_uri(img)
-
-
-def read_pdf_file(file_path: str) -> str:
-    images = convert_doc_to_images(file_path)
-    if images:
-        return get_img_uri(images[0])
-    return ""
-
-
-def convert_doc_to_images(path: str):
-    """
-    - Convert PDF into a list of images (one per page).
-    - Currently the application intentionally supports only a one-page PDF by creating an image from the first page.
-    """
-    return convert_from_path(path)
-
-
-def extract_text_from_doc(path: str) -> str:
-    """
-    - Extract text from a PDF via pdfminer.
-    - Currently all PDFs are intentionally handled as images.
-    """
-    return extract_text(path)
-
-
-def get_metadata(directory):
-    """
-    Expecting something like:
-
-    ```yaml
-    tags:
-      - Python:
-        - Basics:
-          - Syntax
-          - Data_Types
-        - Functions:
-          - Defining
-          - Lambda
-
-    ignore:
-        - Exercises
-        - Summary
-    ```
-    """
-    metadata_file = os.path.join(directory, "metadata.yaml")
-    if not os.path.isfile(metadata_file):
-        logger.warning("No metadata.yaml found in %s.", directory)
-        return []
-
-    with open(metadata_file, 'r', encoding='utf-8') as f:
-        try:
-            yaml_data = yaml.safe_load(f)
-        except yaml.YAMLError as e:
-            logger.error("Error parsing metadata.yaml in %s: %s", directory, e)
-            return []
-
-    return yaml_data
-
-
-def read_metadata_tags(directory):
+def get_tags(directory):
     """
     Reads a metadata.yaml file in the given directory, parses the 'tags' section,
     and returns a list of strings. If metadata.yaml or 'tags:' is missing, returns [].
     """
-    yaml_data = get_metadata(directory)
+    yaml_data = _get_metadata(directory)
 
     if "anki_tags" not in yaml_data:
         logger.warning("No 'anki_tags:' key found in metadata.yaml in %s. Proceeding without Anki tags.", directory)
@@ -184,12 +76,12 @@ def read_metadata_tags(directory):
     return flattened_tags
 
 
-def read_metadata_ignore_list(directory):
+def get_ignore_list(directory):
     """
     Reads the 'ignore' list from metadata.yaml and returns a list of headings to ignore.
     If 'ignore:' is missing, returns an empty list.
     """
-    yaml_data = get_metadata(directory)
+    yaml_data = _get_metadata(directory)
 
     if "ignore_sections" not in yaml_data:
         logger.warning("No 'ignore_sections:' key found in metadata.yaml in %s. Proceeding with all extracted sections.", directory)
@@ -205,6 +97,20 @@ def read_metadata_ignore_list(directory):
     console.log("[bold red] Ignoring headings:", ignore_headings)
 
     return ignore_headings
+
+
+def get_content_type(file_path: str, url: str = None) -> str:
+    """
+    - If `url` is provided, returns `'url'`;
+    - Else extracts file extension and returns `'unsupported'` if it’s not recognized.
+    """
+    if url:
+        return 'url'
+    if file_path:
+        _, ext = os.path.splitext(file_path)
+        ext = ext.lower()
+        return EXTENSION_CONTENT_TYPE_MAP.get(ext, 'unsupported')
+    return 'unsupported'
 
 
 def _flatten_tags(obj, path_so_far):
@@ -252,9 +158,86 @@ def _flatten_tags(obj, path_so_far):
     return results
 
 
+def _get_metadata(directory):
+    """
+    Expecting something like:
+
+    ```yaml
+    tags:
+      - Python:
+        - Basics:
+          - Syntax
+          - Data_Types
+        - Functions:
+          - Defining
+          - Lambda
+
+    ignore:
+        - Exercises
+        - Summary
+    ```
+    """
+    metadata_file = os.path.join(directory, "metadata.yaml")
+    if not os.path.isfile(metadata_file):
+        logger.warning("No metadata.yaml found in %s.", directory)
+        return []
+
+    with open(metadata_file, 'r', encoding='utf-8') as f:
+        try:
+            yaml_data = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            logger.error("Error parsing metadata.yaml in %s: %s", directory, e)
+            return []
+
+    return yaml_data
+
+
+def _get_image(path: str):
+    """
+    - Convert PDF into a list of images (one per page).
+    - Currently the application intentionally supports only a one-page PDF by creating an image from the first page.
+    """
+    return convert_from_path(path)
+
+
+def _get_pdf_text(path: str) -> str:
+    """
+    - Extract text from a PDF via pdfminer.
+    - Currently all PDFs are intentionally handled as images.
+    """
+    return extract_text(path)
+
+
+def _get_img_uri(img: Image.Image) -> str:
+    """
+    - Takes a PIL Image, writes it to an in-memory buffer as PNG, base64-encodes it, and returns the base64 string.
+    - This is used by `file_utils` to handle images.
+    """
+    png_buffer = io.BytesIO()
+    img.save(png_buffer, format="PNG")
+    png_buffer.seek(0)
+    base64_png = base64.b64encode(png_buffer.read()).decode('utf-8')
+    return f"data:image/png;base64,{base64_png}"
+
+
+def _get_plain_text(file_path: str) -> str:
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
+def _read_image_file(file_path: str) -> str:
+    img = Image.open(file_path)
+    return _get_img_uri(img)
+
+
+def _read_pdf_file(file_path: str) -> str:
+    images = _get_image(file_path)
+    if images:
+        return _get_img_uri(images[0])
+    return ""
+
 READ_DISPATCH = {
-    'text': read_text_file,
-    'json': read_json_file,
-    'image': read_image_file,
-    'pdf': read_pdf_file
+    'text': _get_plain_text,
+    'image': _read_image_file,
+    'pdf': _read_pdf_file
 }

@@ -1,9 +1,7 @@
 """
-Purpose:
-
-- Deals with textual websites (not images/PDFs).
-- Uses `trafilatura` to fetch and extract textual HTML as Markdown. Then we chunk the markdown
-  by headings to create sections suitable for flashcard generation.
+Deals with textual websites (not images/PDFs).
+Uses `trafilatura` to fetch and extract textual HTML as Markdown.
+Then chunks the markdown by headings to create sections suitable for flashcard generation.
 """
 import re
 
@@ -16,7 +14,10 @@ from utils.flashcard_logger import logger
 console = Console()
 
 
-def fetch_and_parse_url(url: str, ignore_list=None) -> dict:
+def process_url(
+        url: str,
+        ignore_list=None
+) -> dict:
     """
     - Calls `trafilatura.fetch_url(url)`,
     - Extracts content as Markdown using `extract(..., output_format="md")`,
@@ -45,7 +46,6 @@ def fetch_and_parse_url(url: str, ignore_list=None) -> dict:
     # Example: limiting the minimum text length or including images/links if you prefer
     # config.set("DEFAULT", "MIN_LENGTH", "120")
     config = use_config()
-
     extracted_markdown = extract(
         downloaded_html,
         config=config,
@@ -54,17 +54,16 @@ def fetch_and_parse_url(url: str, ignore_list=None) -> dict:
         include_tables=False,
         with_metadata=False
     )
-
     if not extracted_markdown:
         logger.warning("No textual content extracted from %s", url)
         return {}
 
     # Now parse the extracted markdown into heading-based sections
-    sections = parse_markdown_headings(extracted_markdown)
+    sections = _get_headers(extracted_markdown)
 
     # Optionally skip headings using ignore_list
     if ignore_list:
-        sections = skip_markdown_headings(sections, ignore_list)
+        sections = _skip_headers(sections, ignore_list)
 
     if not sections:
         logger.warning("No headings were found or all headings filtered out from %s", url)
@@ -76,7 +75,7 @@ def fetch_and_parse_url(url: str, ignore_list=None) -> dict:
     }
 
 
-def parse_markdown_headings(markdown_text: str) -> list:
+def _get_headers(markdown_text: str) -> list:
     """
     Splits the markdown into sections by top-level markdown headings (`#`, `##`, etc.).
 
@@ -91,8 +90,10 @@ def parse_markdown_headings(markdown_text: str) -> list:
         ]
     """
     # Regex to capture lines that start with '#' (1-6).
-    heading_regex = re.compile(r'^(#{1,6})\s+(.*)$', re.MULTILINE)
-
+    heading_regex = re.compile(
+        r'^(#{1,6})\s+(.*)$',
+        re.MULTILINE
+    )
     lines = markdown_text.splitlines()
     sections = []
     current_title = None
@@ -104,10 +105,12 @@ def parse_markdown_headings(markdown_text: str) -> list:
             # We have encountered a new heading
             if current_title is not None:
                 # Store the previous heading section
-                sections.append({
-                    "title": current_title.strip(),
-                    "content": "\n".join(current_content).strip()
-                })
+                sections.append(
+                    {
+                        "title": current_title.strip(),
+                        "content": "\n".join(current_content).strip()
+                    }
+                )
             # Reset for this new heading
             current_title = match.group(2)
             current_content = []
@@ -117,15 +120,19 @@ def parse_markdown_headings(markdown_text: str) -> list:
 
     # Handle the last heading in the file
     if current_title is not None:
-        sections.append({
-            "title": current_title.strip(),
-            "content": "\n".join(current_content).strip()
-        })
-
+        sections.append(
+            {
+                "title": current_title.strip(),
+                "content": "\n".join(current_content).strip()
+            }
+        )
     return sections
 
 
-def skip_markdown_headings(sections: list, ignore_list: list) -> list:
+def _skip_headers(
+        sections: list,
+        ignore_list: list
+) -> list:
     """
     Filters out entire sections whose `title` matches a heading in `ignore_list`
     (case-insensitive). Each section is a dict with "title" and "content".

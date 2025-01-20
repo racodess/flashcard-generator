@@ -1,7 +1,5 @@
 """
-Purpose:
-
-- Contains logger used across modules.
+Contains logger used across modules.
 """
 import logging
 

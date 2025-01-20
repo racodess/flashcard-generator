@@ -1,7 +1,5 @@
 """
-Purpose:
-
-- Contains the HTML or CSS markup used by Anki "note types" (flashcard templates).
+Contains the HTML or CSS markup used by Anki "note types" (flashcard templates).
 """
 BASIC_CARD_NAME = "fcGen: Basic"
 

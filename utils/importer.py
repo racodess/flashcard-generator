@@ -27,6 +27,44 @@ from utils import models, templates
 console = Console()
 
 
+def anki_import(
+        flashcards_model,
+        template_name="Default",
+        deck_name=None
+):
+    """
+    The culminating function that:
+
+    1. Calls `get_notes(...)` to build a list of notes from the flashcards data,
+    2. Then calls `_invoke("addNotes", notes=notes)` to push them into Anki.
+
+    - If some notes fail, logs that info.
+    - Duplicate notes are allowed by default due to Anki flagging the "note types" created by this application as having duplicate fields, which is intentional but erroneous behavior.
+
+    :param flashcards_model: The flashcards model to add.
+    :param template_name: The name of the Anki note type (model) to use.
+    :param deck_name: The name of the deck to place notes in.
+    """
+    notes, deck_name = _get_notes(
+        flashcards_model,
+        template_name,
+        deck_name
+    )
+    result = _invoke("addNotes", notes=notes)
+
+    if result:
+        # If note_id is None in the response, it means adding that note failed.
+        failed_notes = [i for i, note_id in enumerate(result) if note_id is None]
+        if not failed_notes:
+            logger.info("Successfully added %d notes to deck '%s'.", len(result), deck_name)
+        else:
+            logger.warning("Failed to add %d notes to deck '%s'.", len(failed_notes), deck_name)
+    else:
+        logger.error("Failed to add notes to Anki.")
+
+    logger.info("Notes added with IDs: %s", result)
+
+
 def _request(action, **params):
     """
     - Convenience function that builds a dictionary in the format AnkiConnect expects:
@@ -81,7 +119,7 @@ def _invoke(action, **params):
     return data["result"]
 
 
-def ensure_template_exists(template_name):
+def _has_template(template_name):
     """
     - Checks if a “model” (Anki note type) with that name is in Anki. If not, calls `createModel` in AnkiConnect with your “Front” and “Back” HTML templates (for “Problem” or “Basic” flashcards).
     - This ensures Anki has the correct template before the flashcards are imported.
@@ -175,7 +213,7 @@ def ensure_template_exists(template_name):
     logger.info("Anki note type '%s' created successfully.", template_name)
 
 
-def create_deck(deck_name):
+def _get_deck(deck_name):
     """
     - Calls AnkiConnect’s `createDeck`. Anki automatically does nothing if that deck already exists, so it’s effectively an “ensure deck exists” method.
 
@@ -186,7 +224,7 @@ def create_deck(deck_name):
     return _invoke("createDeck", deck=deck_name)
 
 
-def get_default_deck():
+def _get_default_deck():
     """
     - Tries to find or create a deck that starts with `Imported`. If no `Imported` deck is found, it creates a new one like `Imported1`, `Imported2`, etc.
     - Each set of flashcards is imported to its own `Imported<num>` deck by default to allow the user an opportunity to curate the set before integrating it to their personal decks.
@@ -211,28 +249,18 @@ def get_default_deck():
         next_deck_number = 1
 
     deck_name = f"Imported{next_deck_number}"
-    create_deck(deck_name)
+    _get_deck(deck_name)
     logger.info("Importing flashcards to deck: %s", deck_name)
     return deck_name
 
 
-def escape_html_entities(text):
-    """
-    Escape HTML entities in a string.
-
-    :param text: The string to escape.
-    :return: The escaped string.
-    """
-    return html.escape(text, quote=False)
-
-
-def build_fields(fc, flashcards_model):
+def _get_fields(fc, flashcards_model):
     """
     Construct and return a dict of fields for a single flashcard.
     The final dict is run once through HTML entity escaping, so we
     don't scatter repeated calls everywhere.
     """
-    # 1) Start with common fields from fc.data
+    # Common data fields
     fields = {
         "Image": fc.data.image,
         "external_source": fc.data.external_source,
@@ -240,7 +268,7 @@ def build_fields(fc, flashcards_model):
         "url": fc.data.url
     }
 
-    # 2) Branch for problem flashcards vs. general flashcards
+    # ProblemFlashcardItem
     if isinstance(fc, models.ProblemFlashcardItem):
         fields["Header"] = fc.header
         fields["Problem"] = flashcards_model.problem
@@ -258,71 +286,42 @@ def build_fields(fc, flashcards_model):
         fields["Space"] = fc.space
         fields["Space Explanation"] = fc.space_explanation
 
+    # ConceptFlashcardItem
     else:
-        # e.g. ConceptFlashcardItem or something else
         fields["Header"] = flashcards_model.header
         fields["Front"] = fc.front
         fields["Back"] = fc.back
         fields["Example"] = fc.example
 
-    # 3) Now apply HTML escaping to every field in one pass
-    escaped_fields = {k: escape_html_entities(v) for k, v in fields.items()}
-
+    # Escape HTML in all fields to avoid text formatting errors in Anki
+    escaped_fields = {
+        k: html.escape(v, quote=False) for k, v in fields.items()
+    }
     return escaped_fields
 
 
-def get_notes(flashcards_model, template_name, deck_name):
+def _get_notes(
+        flashcards_model,
+        template_name,
+        deck_name
+):
     """
     - Converts your internal Pydantic model (`Flashcard`, `ProblemFlashcard`, etc.)
       to the format Anki expects.
     - Returns a tuple of (notes, deck_name).
     """
-    ensure_template_exists(template_name)
-
-    if deck_name is None:
-        deck_name = get_default_deck()
+    _has_template(template_name)
+    deck_name = deck_name or _get_default_deck()
 
     notes = []
     for fc in flashcards_model.flashcards:
-        fields = build_fields(fc, flashcards_model)
-
-        note = {
-            "deckName": deck_name,
-            "modelName": template_name,
-            "fields": fields,
-            "options": {"allowDuplicate": True},
-            "tags": fc.tags
-        }
-        notes.append(note)
-
+        notes.append(
+            {
+                "deckName": deck_name,
+                "modelName": template_name,
+                "fields": _get_fields(fc, flashcards_model),
+                "options": {"allowDuplicate": True},
+                "tags": fc.tags
+            }
+        )
     return notes, deck_name
-
-
-def add_flashcards_to_anki(flashcards_model, template_name="Default", deck_name=None):
-    """
-    The culminating function that:
-
-    1. Calls `get_notes(...)` to build a list of notes from the flashcards data,
-    2. Then calls `_invoke("addNotes", notes=notes)` to push them into Anki.
-
-    - If some notes fail, logs that info.
-    - Duplicate notes are allowed by default due to Anki flagging the "note types" created by this application as having duplicate fields, which is intentional but erroneous behavior.
-
-    :param flashcards_model: The flashcards model to add.
-    :param template_name: The name of the Anki note type (model) to use.
-    :param deck_name: The name of the deck to place notes in.
-    """
-    notes, deck_name = get_notes(flashcards_model, template_name, deck_name)
-    result = _invoke("addNotes", notes=notes)
-
-    if result:
-        # If note_id is None in the response, it means adding that note failed.
-        failed_notes = [i for i, note_id in enumerate(result) if note_id is None]
-        if not failed_notes:
-            logger.info("Successfully added %d notes to deck '%s'.", len(result), deck_name)
-        else:
-            logger.warning("Failed to add %d notes to deck '%s'.", len(failed_notes), deck_name)
-    else:
-        logger.error("Failed to add notes to Anki.")
-
-    logger.info("Notes added with IDs: %s", result)
