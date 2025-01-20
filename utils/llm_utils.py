@@ -1,15 +1,10 @@
 """
 LLM utility functions.
 """
-import ast
 from enum import Enum
 
-from docstring_parser.attrdoc import ast_is_literal_str
 from rich.console import Console
 from openai import OpenAI
-from rich.markdown import Markdown
-from rich.pretty import pprint
-from weasyprint.css.validation.properties import content
 
 from utils import prompts, models
 from utils.flashcard_logger import logger
@@ -18,14 +13,16 @@ console = Console()
 client = OpenAI()
 
 class PromptType(Enum):
-    REWRITE_TEXT = "rewrite_text"
     CONCEPTS = "concepts"
     PROBLEM_SOLVING = "problem_solving"
+    TAGS = "tags"
+    REWRITE_TEXT = "rewrite_text"
 
 PROMPT_TEMPLATES = {
-    PromptType.REWRITE_TEXT: prompts.REWRITE_PROMPT,
     PromptType.CONCEPTS: prompts.CONCEPT_FLASHCARD_PROMPT,
     PromptType.PROBLEM_SOLVING: prompts.PROBLEM_FLASHCARD_PROMPT,
+    PromptType.TAGS: prompts.TAG_PROMPT,
+    PromptType.REWRITE_TEXT: prompts.REWRITE_PROMPT
 }
 
 
@@ -37,21 +34,40 @@ def get_system_message(
     return template.format(**kwargs)
 
 
-def get_rewrite(content, content_type):
+def get_rewrite(user_message, content_type):
     system_message = get_system_message(
-        PromptType.REWRITE_TEXT
+        prompt_type=PromptType.REWRITE_TEXT
     )
     messages = [
         {"role": "system", "content": system_message},
-        {"role": "user", "content": content}
+        {"role": "user", "content": user_message}
     ]
     completion = _get_completion(
         messages=messages,
-        run_as_image=(content_type not in ["text", "url"]),
         response_format=models.TEXT_FORMAT,
+        run_as_image=(content_type not in ["text", "url"])
     )
-    response = completion.choices[0].message.content
-    return response
+    return completion.choices[0].message.content
+
+
+def get_tags(
+        user_message,
+        tags,
+        model_class
+):
+    system_message = get_system_message(
+        prompt_type=PromptType.TAGS,
+        tags=tags
+    )
+    messages = [
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": user_message}
+    ]
+    completion = _get_completion(
+        messages=messages,
+        response_format=model_class,
+    )
+    return completion.choices[0].message.content
 
 
 def get_flashcards(
@@ -86,8 +102,8 @@ def get_flashcards(
 
     completion = _get_completion(
         messages=messages if run_as_image else conversation,
-        run_as_image=run_as_image,
-        response_format=response_format
+        response_format=response_format,
+        run_as_image = run_as_image
     )
     response = completion.choices[0].message.content
 
@@ -117,7 +133,10 @@ def _get_completion(
     gpt_4o_mini = "gpt-4o-mini"
     model = gpt_4o if run_as_image else gpt_4o_mini
 
-    console.log(f"\n[bold cyan]Messages sent to `{model}`:[/bold cyan]\n", messages)
+    if run_as_image:
+        console.log("[bold cyan]Image placeholder text.[/bold cyan]")
+    else:
+        console.log("[bold cyan]Message sent to LLM:[/bold cyan]", messages)
 
     try:
         completion = client.beta.chat.completions.parse(
@@ -132,6 +151,6 @@ def _get_completion(
         logger.error("Error calling LLM: %s", e, exc_info=True)
         raise
 
-    console.log(f"\n[bold yellow]`{model}` response:[/bold yellow]\n", completion.choices[0].message.content)
+    console.log(f"[bold yellow]`{model}` response:[/bold yellow]", completion.choices[0].message.content)
 
     return completion

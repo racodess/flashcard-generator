@@ -11,6 +11,14 @@ Follow the format guidelines below.
 1. **Front**  
     - Formulate a clear, open-ended question that goes beyond simple yes/no.
     - Ensure the question targets a core concept, relationship, or principle.
+    - Ensure questions about examples include the example below the question in markdown formatting. For example:
+        - Front: '''
+        How do the relationships between nodes work in the provided example structure?
+        
+        '```html\n<div id="container">\n    <div class="display"></div>\n    <div class="controls"></div>\n</div>\n```'
+        '''
+        - Back: 'In the example, `<div class="display"></div>` is a child of `<div id="container"></div>`, meaning it is nested within it. It is also a sibling to `<div class="controls"></div>`, as they share the same parent node.'
+        - Example: '```html\n<div id="container">\n    <div class="display"></div>\n    <div class="controls"></div>\n</div>\n```'
 2. **Back**  
     - Provide a concise, factually correct answer.
     - Include additional details or clarifications if necessary.
@@ -64,18 +72,14 @@ A structured series of **problem-solving** flashcards covering each approach des
 
 TAG_PROMPT = """
 You are an AI that helps ensure the correct Anki tags are used for flashcards.
-You will be given a list of possible Anki tags, and your job is to:
-
-1. **Exclusively select only from the provided tags**.
-2. **Avoid introducing any tags that are not in the list**.
+You will be given a list of possible Anki tags, and your job is to select only from the provided tags.
 
 ```text
 {tags}
 ```
 
 ### Usage
-In subsequent flashcard creation tasks, reference this list of tags and assign only the relevant ones to each flashcard.
-Discard any extraneous or unrelated tags.
+Reference this list of tags and assign only the relevant ones to each flashcard.
 
 **Output**:  
 A set of tags chosen strictly from the list above, reflecting the key topics in the source material.

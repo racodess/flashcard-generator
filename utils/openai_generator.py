@@ -4,7 +4,7 @@ from rich.console import Console
 from utils import models, format_utils, file_utils, importer, templates
 from utils.llm_utils import (
     PromptType,
-    get_flashcards, get_rewrite, get_system_message
+    get_flashcards, get_rewrite, get_system_message, get_tags
 )
 from utils.flashcard_logger import logger
 from utils.scraper import process_url
@@ -93,7 +93,10 @@ def _run_generic_flow(
 
     # Rewrite the content without storing in conversation history
     if content_type in ["text", "url"]:
-        rewritten_text = get_rewrite(content, content_type)
+        rewritten_text = get_rewrite(
+            user_message=content,
+            content_type=content_type
+        )
 
         # Optionally create PDF if it's plain text
         if content_type == "text" and media_path:
@@ -109,28 +112,36 @@ def _run_generic_flow(
     # Create or update the flashcard conversation with the prompt for flashcards
     system_message = get_system_message(prompt_type, tags=tags)
 
-    response_text = get_flashcards(
+    response = get_flashcards(
         conversation=conversation,
         system_message=system_message,
         user_text=rewritten_text,
         run_as_image=(content_type not in ["text", "url"]),  # e.g., PDF, image, etc.
         response_format=model_class
     )
+
+    if tags:
+        response = get_tags(
+            user_message=response,
+            tags=tags,
+            model_class=model_class
+        )
+
     # Validate model and fill metadata
-    validated_model = model_class.model_validate_json(response_text)
+    card_model = model_class.model_validate_json(response)
 
     format_utils.set_data_fields(
-        card_model=validated_model,
+        card_model=card_model,
         url_name=url_name,
         file_name=file_name,
         content_type=content_type
     )
 
     # Print flashcards for debugging
-    format_utils.print_flashcards(validated_model.flashcards)
-    importer.anki_import(validated_model, template_name=template_name)
+    format_utils.print_flashcards(card_model.flashcards)
+    importer.anki_import(card_model, template_name=template_name)
 
-    return validated_model
+    return card_model
 
 
 def _run_problem_flow(
@@ -187,10 +198,10 @@ def _process_chunks(
     console.rule(
         f"[bold red]Extracted and Filtered Webpage Data[/bold red]"
     )
-    console.log(
-        f"[bold red]Chunks:[/bold red]",
-        chunks
-    )
+    if content_type in ["text", "url"]:
+        console.log(f"[bold red]Chunks:[/bold red]", chunks)
+    else:
+        console.log(f"[bold red]Chunks:[/bold red]", "Image placeholder text.")
     for idx, chunk in enumerate(
             chunks,
             start=1
@@ -205,10 +216,10 @@ def _process_chunks(
         console.rule(f"[bold red]Chunk {idx}:[/bold red] {heading_title}")
 
         # Show chunk in console for debugging if it's text
-        if content_type == "text" or content_type == "json":
+        if content_type == "text" or content_type == "url":
             console.print(chunk_text)
         else:
-            console.print("Image")
+            console.print("Image placeholder text")
 
         if card_type == 'problem':
             _run_problem_flow(
