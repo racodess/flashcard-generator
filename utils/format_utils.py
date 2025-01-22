@@ -1,8 +1,14 @@
 """
-Formatting utilities:
-- Generating PDF from information plain text .txt files that DO NOT contain URLs
-- Parsing list of concepts required in flashcard generation pipeline
-- Printing messages
+Formatting utilities for flashcards and text documents.
+
+This module provides functions for:
+1. Generating PDFs from plain text or Markdown-like content (via `weasyprint` and `markdown2`).
+2. Setting extra fields (metadata) on flashcards before import.
+3. Printing flashcards in a structured manner to the console.
+
+Usage context:
+  - Typically called after text or URL content is retrieved and segmented.
+  - PDFs can be automatically generated for reference material (e.g., concept maps).
 """
 import os
 
@@ -11,7 +17,6 @@ from rich.console import Console
 
 import markdown2
 from weasyprint import HTML, CSS
-# used by weasyprint
 
 from utils.flashcard_logger import logger
 from utils.templates import ADDITIONAL_CSS
@@ -25,6 +30,21 @@ def set_data_fields(
         file_name,
         content_type
 ):
+    """
+    Populates certain metadata fields in each flashcard within `card_model`.
+
+    Logic:
+      - If it's an image file, store the `file_name` in the 'image' field.
+      - Otherwise, store the `file_name` as an 'external_source'.
+      - Set 'external_page' to 1 by default (useful if referencing multi-page PDFs).
+      - Attach the `url_name` (if any) so the flashcard can link back to the source.
+
+    Args:
+        card_model (BaseModel): A flashcard model with a `.flashcards` list.
+        url_name (str): The URL (if relevant) to associate with the flashcards.
+        file_name (str): The original filename (for reference).
+        content_type (str): The type of content ("image", "pdf", "text", etc.).
+    """
     for fc in card_model.flashcards:
         fc.data.image = file_name if content_type == "image" else ""
         fc.data.external_source = file_name if content_type != "image" else ""
@@ -38,9 +58,26 @@ def make_pdf(
         text: str
 ) -> None:
     """
-    - For generating high-quality PDFs (currently from a concept map prompt) from plain text .txt files that DO NOT contain URLs.
-    - Uses `markdown2` to convert Markdown text to HTML, then calls WeasyPrint to create a clean and colorful PDFs featuring syntax highlighting for code.
-    - Stores the resulting PDF inside `_pdf_files` in Anki’s media folder to be used as a source file linked within flashcards; requires a separate Anki add-on "pdf viewer and editor".
+    Creates a PDF from given text (often Markdown) and saves it into Anki's
+    media folder under `_pdf_files`.
+
+    Steps:
+      1. Convert the provided `text` to HTML using `markdown2` with extras:
+         - "fenced-code-blocks" for triple-backtick code formatting.
+         - "highlight_code" for syntax highlighting.
+         - "code-friendly" for better code block handling.
+      2. Use `WeasyPrint` to render the HTML as a PDF.
+      3. Save the resulting PDF within `_pdf_files` under the `media_path`.
+
+    This PDF can be referenced in Anki flashcards (requires a PDF-friendly add-on).
+
+    Args:
+        media_path (str): The path to Anki's media folder (e.g., `collection.media`).
+        file_name (str): Name to give the resulting PDF (without `.pdf` extension).
+        text (str): The raw text content (potentially Markdown) to convert into a PDF.
+
+    Raises:
+        Exception: If the PDF generation fails for any reason.
     """
     pdf_folder = os.path.join(media_path, "_pdf_files")
     os.makedirs(pdf_folder, exist_ok=True)
@@ -65,5 +102,11 @@ def make_pdf(
 
 
 def print_flashcards(content):
+    """
+    Prints structured flashcard content to the console for debugging/inspection.
+
+    Args:
+        content (Any): The flashcard data (or a list of flashcards) to display.
+    """
     console.rule("Completed Flashcards")
     pprint(content, expand_all=True)

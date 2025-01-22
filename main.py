@@ -1,6 +1,5 @@
 """
-Purpose:
-- Main entry-point and orchestration of the application.
+Main entry-point and orchestration of the application.
 
 1. Takes a directory path from the command line,
 2. Recursively scans that directory,
@@ -27,8 +26,15 @@ console = Console()
 
 def _get_anki_media_path():
     """
-    - Returns the default `collection.media` path for Anki, depending on your operating system.
+    Returns the path to the default Anki 'collection.media' folder.
+
+    This function relies on common installation paths for Anki, which differ
+    based on the operating system. On Windows, it uses %APPDATA%. On macOS,
+    it uses '~/Library/Application Support'. On Linux or other UNIX-like systems,
+    it uses '~/.local/share'. Adjust as necessary if your Anki installation
+    differs from these defaults.
     """
+    # Determine the operating system and set the default path accordingly
     if sys.platform.startswith('win'):
         return os.path.expandvars(r'%APPDATA%\Anki2\User 1\collection.media')
     elif sys.platform.startswith('darwin'):
@@ -39,41 +45,69 @@ def _get_anki_media_path():
 
 def _copy_to_anki_media_path(file_path, content_type, anki_media_path):
     """
-    - Copies the file over to the Anki media directory; should always exist if Anki is installed.
-    - It places certain content (like PDFs) into a `_pdf_files` subdirectory within the Anki media directory for organization; required for linking the source file to the flashcards.
-    - Places images in the Anki media directory; required for placing the image in the flashcard.
+    Copies the file to the specified Anki media directory.
+
+    The behavior varies by file `content_type`:
+      - Images are copied directly into the top-level of the Anki media folder.
+      - PDFs are copied into a subfolder called '_pdf_files' within the Anki media folder.
+      - Other file types (if supported) are copied to the top-level folder by default.
+
+    Args:
+        file_path (str): Full path to the source file.
+        content_type (str): Type of the content (image, pdf, or other).
+        anki_media_path (str): The resolved path to Anki's 'collection.media' folder.
+
+    It logs an error if the copy fails for any reason (e.g., permission errors).
     """
     file_name = os.path.basename(file_path)
     try:
+        # If the file is an image, copy it directly to the Anki media folder
         if content_type in ['image']:
             shutil.copy2(file_path, anki_media_path)
+        # If the file is a PDF, create a '_pdf_files' subdirectory and copy it there
         elif content_type == 'pdf':
             pdf_dir = os.path.join(anki_media_path, '_pdf_files')
             os.makedirs(pdf_dir, exist_ok=True)
             shutil.copy2(file_path, pdf_dir)
         else:
-            # Copy everything else by default
+            # Fallback: Copy everything else into the Anki media folder root
             shutil.copy2(file_path, anki_media_path)
 
         logger.debug("Copied %s to Anki media path", file_name)
     except Exception as e:
+        # Log any failures during the copy
         logger.error("Failed to copy %s to Anki media path: %s", file_name, e)
 
 
 def _move_file(file_path, used_dir, context):
     """
-    - Moves a file from its original location into a mirrored structure under `used_dir`.
-    - Uses `os.makedirs(..., exist_ok=True)` to create directories if needed, and `shutil.move(...)` to do the file move.
+    Moves a file from its current location into a mirrored subdirectory under `used_dir`.
+
+    The 'used-files' directory is meant to store files that have been processed,
+    preventing them from being re-processed in subsequent runs. The subdirectory
+    structure under `used_dir` mirrors the original folder hierarchy.
+
+    Args:
+        file_path (str): The full path of the file being moved.
+        used_dir (str): The full path to the 'used-files' folder.
+        context (dict): Holds contextual info like the relative path from
+                        the scanned directory, among others.
+
+    Returns:
+        str: The new file path after being moved.
     """
     file_name = os.path.basename(file_path)
+    # Construct the subdirectory in 'used_dir' that mirrors original location
     target_dir = os.path.join(used_dir, context['relative_path'])
     os.makedirs(target_dir, exist_ok=True)
 
+    # Append the file name to the target directory path
     new_file_path = os.path.join(target_dir, file_name)
     try:
         shutil.move(file_path, new_file_path)
         logger.debug("Moved %s to %s", file_path, new_file_path)
     except Exception as e:
+        # Log issues if the file move fails (e.g., permission, existing file with the same name)
         logger.error("Unable to move file %s: %s", file_path, e)
 
     return new_file_path
@@ -81,29 +115,35 @@ def _move_file(file_path, used_dir, context):
 
 def _process_file(file_path, context):
     """
-    - This is central to how individual files are handled:
+    Primary handler for processing individual non-.txt files (images, PDFs, etc.).
 
-     1. Move the file to `used-files` as back-up,
-     2. Copy it into Anki’s media folder,
-     3. Determine the file’s “content type” (image, PDF, text, etc.) via `file_utils.get_content_type(...)`,
-     4. Figure out the flashcard “type” (e.g., if the file is in a `problem_solving` subfolder, set `flashcard_type='problem'`),
-     5. Finally, call `generate_flashcards(...)` from `openai_generator.py`.
+    Steps:
+      1. Move the file to `used-files` as a back-up,
+      2. Determine the file’s content type (image, PDF, text, etc.) via file_utils,
+      3. Copy the file into Anki’s media folder according to the content type,
+      4. Infer the flashcard "type" (e.g., 'problem' for files under 'problem_solving' subfolder),
+      5. Call `generate_flashcards(...)` to create relevant flashcards for the file.
+
+    Returns:
+        bool: True if flashcard generation was successful, False if skipped/unsupported.
     """
-    # 1. Move file to used-files
+    # 1. Move file to the 'used-files' folder
     new_file_path = _move_file(file_path, context['used_dir'], context)
 
-    # 2. Identify content type (so we know how to copy it to Anki media)
+    # 2. Determine content type to decide how to handle within Anki
     content_type = file_utils.get_content_type(new_file_path, url=None)
     if content_type == 'unsupported':
         logger.warning("Unsupported file type: %s. Skipping.", new_file_path)
         return False
 
+    # 3. Copy file into the Anki media folder in the correct location
     _copy_to_anki_media_path(new_file_path, content_type, context['anki_media_path'])
 
-    # 3. If 'problem_solving' is in the path, let's treat it as problem-solving flashcards
+    # 4. Infer flashcard type based on directory naming convention
+    #    If 'problem_solving' is in path, we treat it as problem-solving
     flashcard_type = 'problem' if 'problem_solving' in os.path.normpath(context['relative_path']).split(os.sep) else 'general'
 
-    # 4. Generate flashcards (single entry point)
+    # 5. Generate flashcards for this file
     generate_flashcards(
         file_path=new_file_path,
         url=None,
@@ -116,36 +156,41 @@ def _process_file(file_path, context):
 
 def _process_url(file_path, context):
     """
-    Sometimes `.txt` files contain URLs.
+    Processes a .txt file that may contain URLs.
 
-    This function:
+    Steps:
+      1. Move the .txt file to `used-files` (back-up),
+      2. Read the file line by line and check each line for a URL pattern,
+      3. For each URL found, call `generate_flashcards(...)`,
+      4. If no URLs are found, fallback to `_process_file(...)` to handle the file normally.
 
-     1. Moves the `.txt` file to `used-files` as back-up,
-     2. Reads each line, searching for lines that match a URL pattern using regular expressions (`re.compile(...)`),
-     3. For each URL, calls `generate_flashcards(...)`, telling the system to fetch that URL’s content.
-
-    If no URLs are found, it just processes the file normally (as with `process_file`).
+    Args:
+        file_path (str): Path to the .txt file.
+        context (dict): Similar context dictionary as used in _process_file.
 
     Returns:
-        bool indicating if flashcards were generated.
+        bool: True if any flashcards were generated, False otherwise.
     """
+    # 1. Move the .txt file to 'used-files'
     new_file_path = _move_file(file_path, context['used_dir'], context)
 
-    # Read lines to find URLs
+    # 2. Use a regex to match URL patterns in each line
     url_pattern = re.compile(r'(https?://[^\s]+)')
     with open(new_file_path, 'r', encoding='utf-8') as tf:
         lines = [line.strip() for line in tf if line.strip()]
     urls = [line for line in lines if url_pattern.match(line)]
 
+    # If no URLs are found, treat the file as a normal text file
     if not urls:
         logger.info("No URLs found in %s, proceeding as normal .txt", new_file_path)
         return _process_file(new_file_path, context)
 
+    # Otherwise, generate flashcards from each URL discovered
     any_generated = False
     logger.info("URLs found in %s. Generating flashcards from web page content.", new_file_path)
 
     for url in urls:
-        # For simplicity, treat all these as 'general' flashcards
+        # For URL-based flashcards, we use 'url' as the flashcard_type
         generate_flashcards(
             file_path=None,
             url=url,
@@ -160,13 +205,24 @@ def _process_url(file_path, context):
 
 def _process_directory(directory_path, anki_media_path):
     """
-    - Creates the `used-files` subfolder if it does not exist,
-    - Invokes an internal, recursive helper `_process_directory_recursive(...)`,
-    - Logs a warning if no files were successfully processed.
+    Orchestrates the processing of the given directory.
+
+    1. Creates 'used-files' folder if it doesn't exist,
+    2. Calls `_process_directory_recursive(...)` to traverse the directory,
+    3. Logs an error if no files were successfully processed.
+
+    Args:
+        directory_path (str): The path that the user provided via command line.
+        anki_media_path (str): The resolved path to Anki's 'collection.media' folder.
+
+    Returns:
+        bool: True if any file was successfully processed; False otherwise.
     """
     used_dir = os.path.join(directory_path, "used-files")
+    # Create the 'used-files' subfolder if it does not already exist
     os.makedirs(used_dir, exist_ok=True)
 
+    # Start the recursive processing from this directory
     processed_any = _process_directory_recursive(
         directory_path=directory_path,
         current_directory=directory_path,
@@ -174,6 +230,7 @@ def _process_directory(directory_path, anki_media_path):
         used_dir=used_dir
     )
 
+    # If no files were found or processed, log an error
     if not processed_any:
         logger.error("No files found or processed in the provided directory.")
     return processed_any
@@ -181,38 +238,62 @@ def _process_directory(directory_path, anki_media_path):
 
 def _process_directory_recursive(directory_path, current_directory, anki_media_path, used_dir):
     """
-    - Recursively descends into subdirectories. Uses:
-        - `os.listdir(...)` to list directory entries,
-        - Splits them into “files” and “subdirs”,
-        - Reads local Anki tags from a `metadata.yaml` if present,
-        - Processes each file with `process_file` or `process_url_in_txt`,
-        - Calls itself on each subdirectory (ignores `used-files` directory).
+    Recursively descends into each subdirectory of 'directory_path' and processes files.
+
+    It performs the following logic:
+      - Skip if the current directory is named 'used-files', to avoid reprocessing moved files.
+      - Attempt to list all entries in the directory.
+      - Collect the files (excluding 'metadata.yaml') and subdirectories.
+      - For each file:
+          * Build 'metadata' by reading any local 'metadata.yaml' (via file_utils),
+          * Build a 'context' dict that includes the relative path, used_dir, etc.
+          * If the file is a .txt, call `_process_url(...)`,
+            otherwise call `_process_file(...)`.
+      - For each subdirectory (except 'used-files'), recursively call `_process_directory_recursive`.
+
+    Args:
+        directory_path (str): The root directory we started with.
+        current_directory (str): The directory we are currently scanning.
+        anki_media_path (str): Path to Anki's 'collection.media' folder.
+        used_dir (str): Path to the 'used-files' folder.
+
+    Returns:
+        bool: True if any file was processed in this directory or subdirectories, False otherwise.
     """
+    # Avoid reprocessing items in the 'used-files' directory
     if os.path.basename(current_directory) == "used-files":
-        return False  # Skip the used-files folder
+        return False
 
     try:
         entries = os.listdir(current_directory)
     except PermissionError:
+        # If we do not have permission to read a directory, log and skip
         logger.warning("Permission denied for directory: %s. Skipping.", current_directory)
         return False
 
+    # Construct full paths for each entry in the current directory
     entries_full_paths = [os.path.join(current_directory, entry) for entry in entries]
+
+    # Separate files and subdirectories (ignoring 'metadata.yaml' in file list)
     files = [f for f in entries_full_paths if os.path.isfile(f) and os.path.basename(f) != "metadata.yaml"]
     subdirs = [d for d in entries_full_paths if os.path.isdir(d)]
 
     processed_something = False
 
+    # Process each file in the current directory
     for fpath in files:
+        # Gather tags and sections to ignore by reading from metadata.yaml if it exists
         metadata = {
             "anki_tags": file_utils.get_tags(current_directory) if current_directory != directory_path else [],
             "ignore_sections": file_utils.get_ignore_list(current_directory) if current_directory != directory_path else [],
         }
 
+        # Determine the path of the current directory relative to the root directory
         relative_path = os.path.relpath(current_directory, directory_path)
         if relative_path == ".":
             relative_path = ""
 
+        # Build the context dict to pass around
         context = {
             'relative_path': relative_path,
             'used_dir': used_dir,
@@ -220,6 +301,7 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
             'metadata': metadata,
         }
 
+        # Check if the file is a .txt; if so, look for URLs. Otherwise, process as normal.
         ext = os.path.splitext(fpath)[1].lower()
         if ext == '.txt':
             if _process_url(fpath, context):
@@ -228,9 +310,11 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
             if _process_file(fpath, context):
                 processed_something = True
 
+    # Recursively process each subdirectory
     for sd in subdirs:
+        # Skip the 'used-files' subdirectory to avoid reprocessing moved files
         if os.path.basename(sd) == "used-files":
-            continue # skips making flashcards out of anything in used-files directory
+            continue
         if _process_directory_recursive(directory_path, sd, anki_media_path, used_dir):
             processed_something = True
 
@@ -238,6 +322,7 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
 
 
 if __name__ == "__main__":
+    # Ensure exactly one argument is provided (the directory path to scan)
     if len(sys.argv) != 2:
         logger.error("Usage: python main.py <directory_path>")
         sys.exit(1)
@@ -245,9 +330,11 @@ if __name__ == "__main__":
     DIRECTORY_PATH = sys.argv[1]
     anki_media_path = _get_anki_media_path()
 
+    # Validate the directory path before processing
     if not os.path.isdir(DIRECTORY_PATH):
         logger.error("The provided path is not a directory: %s", DIRECTORY_PATH)
         sys.exit(1)
 
+    # Call the main processing function; exit code 0 if success, 1 otherwise
     result = _process_directory(DIRECTORY_PATH, anki_media_path)
     sys.exit(0 if result else 1)
