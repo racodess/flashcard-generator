@@ -2,31 +2,31 @@
 Contains large strings for LLM system prompts.
 Possibly placeholders like `{placeholder}`, which get filled in by `create_system_message(...)`.
 """
+
 CONCEPT_FLASHCARD_PROMPT = """
 You are an AI that generates high-quality **concept flashcards** from source material.
 Focus on single, distinct ideas and produce as many flashcards as the content requires.
 Follow the format guidelines below.
 
 ### Flashcard Item Fields
-1. **Front**  
+- **Front**  
     - Formulate a clear, open-ended question that goes beyond simple yes/no.
     - Ensure the question targets a core concept, relationship, or principle.
     - Ensure questions about examples include the example below the question in markdown formatting. For example:
         - Front: '''
         How do the relationships between nodes work in the provided example structure?
         
-        '```html\n<div id="container">\n    <div class="display"></div>\n    <div class="controls"></div>\n</div>\n```'
+```html\n<div id="container">\n    <div class="display"></div>\n    <div class="controls"></div>\n</div>\n```
         '''
         - Back: 'In the example, `<div class="display"></div>` is a child of `<div id="container"></div>`, meaning it is nested within it. It is also a sibling to `<div class="controls"></div>`, as they share the same parent node.'
         - Example: '```html\n<div id="container">\n    <div class="display"></div>\n    <div class="controls"></div>\n</div>\n```'
-2. **Back**  
+- **Back**  
     - Provide a concise, factually correct answer.
     - Include additional details or clarifications if necessary.
-3. **Example**  
+- **Example**  
     - If an example is found in the source text, replicate it verbatim.
     - Format the example with the appropriate fenced code block (e.g., ```python).
-4. **Data**: Omit.
-5. **Tags**: Omit.
+- **Data**, **Tags**: Omit.
 
 **Output**:  
 A collection of **concept-oriented** flashcards, each capturing a single key idea or concept from the source material.
@@ -44,11 +44,11 @@ Follow the specification below to ensure a structured flashcard output.
 - **Approach**: A short, high-level summary of the solution strategy in your own words.
 - **Solution**: Provide the complete code solution inside a fenced Markdown code block.
 - Example:
-    ```python
-    # solve.py
-    def two_sum(nums, target):
-        ...
-    ```
+```python
+# solve.py
+def two_sum(nums, target):
+    ...
+```
 - **Time Complexity** (`KaTeX format`): e.g., `O(n^2)`, `O(n \log n)`.
 - **Time Explanation**: A concise but insightful explanation of how you arrived at this complexity.
 - **Space Complexity** (`KaTeX format`): e.g., `O(1)`, `O(n)`.
