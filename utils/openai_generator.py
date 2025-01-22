@@ -1,3 +1,35 @@
+"""
+Orchestrates the creation of flashcards using a Large Language Model (LLM) pipeline.
+
+High-Level Overview:
+    - Accepts both local file paths and URLs to generate flashcards from.
+    - Identifies content type (text, PDF, image, etc.) and retrieves or parses the content.
+    - Optionally rewrites text for clarity using an LLM before flashcard creation.
+    - Breaks content into sections (chunks) and routes them through specialized flows:
+        * "Problem-solving" flow for more involved, step-by-step question/answer cards.
+        * "Concepts" flow for simpler Q&A flashcards.
+    - Validates, tags, and imports the resulting flashcards into Anki using AnkiConnect.
+
+Typical Usage:
+    1. Call `generate_flashcards(file_path=...)` or `generate_flashcards(url=...)`.
+    2. The script determines the content type and retrieves text accordingly.
+    3. Text is optionally rewritten for clarity, then chunked by headings or sections.
+    4. Each chunk is passed to either the "problem" or "general/concept" flow.
+    5. The finished flashcards, along with any specified tags, are imported into Anki.
+
+Key Components:
+    - `generate_flashcards(...)`: Entry point that orchestrates parsing, rewriting (if needed),
+      and flashcard creation from a local file or URL.
+    - `_process_chunks(...)`: Iterates over chunked content, dispatching to the appropriate flow.
+    - `_run_problem_flow(...)` / `_run_concept_flow(...)`: Specialized methods for generating
+      flashcards suited to problem-solving or conceptual Q&A.
+    - `_run_generic_flow(...)`: Internal helper that handles LLM prompting, response parsing,
+      tagging, and final validation before importing to Anki.
+
+This script is typically called by higher-level logic (e.g., from `main.py`) whenever new files
+or URLs are discovered that require flashcard generation. It relies on modules for LLM interaction,
+file handling, and Anki integration to provide an end-to-end solution.
+"""
 import os
 from rich.console import Console
 
