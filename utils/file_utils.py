@@ -57,7 +57,10 @@ EXTENSION_CONTENT_TYPE_MAP = {
 }
 
 
-def get_data(file_path: str, content_type: str):
+def get_data(
+        file_path: str,
+        content_type: str
+):
     """
     Retrieves the content of a file based on the assigned `content_type`.
 
@@ -148,7 +151,10 @@ def get_ignore_list(directory):
     return ignore_headings
 
 
-def get_content_type(file_path: str, url: str = None) -> str:
+def get_content_type(
+        file_path: str,
+        url: str = None
+) -> str:
     """
     Determines the content type based on either the presence of a URL or a file extension.
 
