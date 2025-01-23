@@ -53,35 +53,36 @@ def set_data_fields(
 
 
 def make_pdf(
-        media_path: str,
+        anki_media_path: str,
+        pdf_viewer_path: str,
         file_name: str,
         text: str
 ) -> None:
     """
     Creates a PDF from given text (often Markdown) and saves it into Anki's
-    media folder under `_pdf_files`.
+    media folder under `_pdf_files` while also copying to the pdf_viewer_path.
 
     Steps:
-      1. Convert the provided `text` to HTML using `markdown2` with extras:
-         - "fenced-code-blocks" for triple-backtick code formatting.
-         - "highlight_code" for syntax highlighting.
-         - "code-friendly" for better code block handling.
+      1. Convert the provided `text` to HTML using `markdown2`.
       2. Use `WeasyPrint` to render the HTML as a PDF.
-      3. Save the resulting PDF within `_pdf_files` under the `media_path`.
-
-    This PDF can be referenced in Anki flashcards (requires a PDF-friendly add-on).
+      3. Save the resulting PDF into both locations.
 
     Args:
-        media_path (str): The path to Anki's media folder (e.g., `collection.media`).
+        anki_media_path (str): The path to Anki's media folder (e.g., `collection.media`).
+        pdf_viewer_path (str): The path used by a PDF-friendly Anki add-on.
         file_name (str): Name to give the resulting PDF (without `.pdf` extension).
         text (str): The raw text content (potentially Markdown) to convert into a PDF.
 
     Raises:
         Exception: If the PDF generation fails for any reason.
     """
-    pdf_folder = os.path.join(media_path, "_pdf_files")
-    os.makedirs(pdf_folder, exist_ok=True)
-    pdf_path = os.path.join(pdf_folder, f"{file_name}.pdf")
+    pdf_backup_dir = os.path.join(anki_media_path, "_pdf_files")
+
+    os.makedirs(pdf_backup_dir, exist_ok=True)
+    os.makedirs(pdf_viewer_path, exist_ok=True)
+
+    backup_path = os.path.join(pdf_backup_dir, f"{file_name}.pdf")
+    viewer_path = os.path.join(pdf_viewer_path, f"{file_name}.pdf")
 
     html_content = markdown2.markdown(
         text,
@@ -91,14 +92,25 @@ def make_pdf(
             "code-friendly",
         ]
     )
+
     try:
-        HTML(string=html_content).write_pdf(
-            pdf_path,
+        # Render the PDF into bytes once
+        pdf_bytes = HTML(string=html_content).write_pdf(
             stylesheets=[CSS(string=ADDITIONAL_CSS)]
         )
-        logger.info("PDF created successfully at: %s", pdf_path)
+
+        # Write to the backup path
+        with open(backup_path, 'wb') as backup_file:
+            backup_file.write(pdf_bytes)
+
+        # Write to the viewer path
+        with open(viewer_path, 'wb') as access_file:
+            access_file.write(pdf_bytes)
+
+        logger.info("PDF created successfully at: %s and %s", backup_path, viewer_path)
     except Exception as e:
         logger.error("Failed to create PDF from %s: %s", file_name, e)
+        raise
 
 
 def print_flashcards(content):

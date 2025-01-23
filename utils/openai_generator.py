@@ -53,6 +53,7 @@ def generate_flashcards(
     metadata=None,
     flashcard_type='general',
     anki_media_path=None,
+    pdf_viewer_path=None,
 ):
     """
     Orchestrates the entire process of creating flashcards, either from a local file or a URL.
@@ -74,7 +75,8 @@ def generate_flashcards(
             - "anki_tags": list of tags to add to flashcards.
             - "ignore_sections": list of headings to ignore for chunking.
         flashcard_type (str, optional): Determines if it's a 'problem' flow or 'general/concept' flow.
-        anki_media_path (str, optional): Path to the Anki media directory, relevant for PDF creation.
+        anki_media_path (str, optional): Path to the Anki media directory, relevant for PDF creation, backup, and syncing.
+        pdf_viewer_path (str): Path to the Anki add-on 'pdf viewer and editor' required directory, relevant for PDF creation, and allowing the Anki add-on to access the file on any OS.
 
     Behavior:
         - If both file_path and url are None, logs an error and exits.
@@ -134,7 +136,8 @@ def generate_flashcards(
             url_name=url_name,
             file_name=source_name,
             content_type=content_type,
-            media_path=anki_media_path
+            anki_media_path=anki_media_path,
+            pdf_viewer_path=pdf_viewer_path
         )
         return
     else:
@@ -154,7 +157,8 @@ def _run_generic_flow(
     content_type: str,
     model_class,           # e.g., models.ProblemFlashcard or models.Flashcard
     template_name: str,    # e.g., templates.PROBLEM_CARD_NAME or templates.BASIC_CARD_NAME
-    media_path: str = None # Used for generating PDFs if the content is plain text
+    anki_media_path: str = None, # Used for storing generated PDFs (from plain text) for backup and syncing with Anki
+    pdf_viewer_path: str = None # Used for making generated PDFs (from plain text) accessible within Anki flashcard reviews
 ):
     """
     A helper method that encapsulates the standard steps to generate flashcards
@@ -179,7 +183,8 @@ def _run_generic_flow(
         model_class (pydantic BaseModel): The model class that represents the structure
             of the flashcards generated (e.g., ProblemFlashcard).
         template_name (str): The Anki note type or template name to use during import.
-        media_path (str, optional): The path to Anki's media folder if needed for PDF generation.
+        anki_media_path (str, optional): The path to Anki's media folder if needed for PDF generation.
+        pdf_viewer_path (str): The path to the Anki add-on 'pdf viewer and editor' required directory, if needed for PDF generation.
 
     Returns:
         A model_class instance containing validated flashcard data, or None if something went wrong.
@@ -194,9 +199,10 @@ def _run_generic_flow(
         )
 
         # If a media_path is provided and content is text, we optionally turn it into a PDF
-        if content_type == "text" and media_path:
+        if content_type == "text" and anki_media_path:
             format_utils.make_pdf(
-                media_path=media_path,
+                anki_media_path=anki_media_path,
+                pdf_viewer_path=pdf_viewer_path,
                 file_name=file_name,
                 text=rewritten_text
             )
@@ -238,8 +244,10 @@ def _run_generic_flow(
     # Display the generated flashcards in the console (debugging)
     format_utils.print_flashcards(card_model.flashcards)
     # Push the flashcards into Anki via importer
-    importer.anki_import(card_model, template_name=template_name)
-
+    importer.anki_import(
+        flashcards_model=card_model,
+        template_name=template_name
+    )
     return card_model
 
 
@@ -283,7 +291,8 @@ def _run_concept_flow(
         url_name,
         file_name,
         content_type,
-        media_path
+        anki_media_path,
+        pdf_viewer_path
 ):
     """
     Initiates the more general "Concepts" flow for flashcard generation
@@ -296,7 +305,8 @@ def _run_concept_flow(
         url_name (str): The original URL if available.
         file_name (str): The local file name if processing a file.
         content_type (str): Indicates whether it's text, PDF, URL, image, etc.
-        media_path (str): Path to Anki's media folder for optional PDF creation.
+        anki_media_path (str): Path to Anki's media folder for optional PDF creation; stores backup and allows syncing of Anki files.
+        pdf_viewer_path (str): Path to Anki's media folder for optional PDF creation; makes file accessible during Anki flashcard reviews.
 
     Returns:
         A Flashcard model instance (with one or more flashcards).
@@ -311,7 +321,8 @@ def _run_concept_flow(
         content_type=content_type,
         model_class=models.Flashcard,
         template_name=templates.BASIC_CARD_NAME,
-        media_path=media_path
+        anki_media_path=anki_media_path,
+        pdf_viewer_path=pdf_viewer_path
     )
 
 
@@ -322,7 +333,8 @@ def _process_chunks(
         url_name,
         file_name,
         content_type,
-        media_path=None
+        anki_media_path=None,
+        pdf_viewer_path=None
 ):
     """
     Iterates over chunked content (sections of text or placeholders),
@@ -348,7 +360,8 @@ def _process_chunks(
         url_name (str): Source URL if available.
         file_name (str): Source file name, used for reference.
         content_type (str): Format of the data (e.g., "text", "url", "pdf", "image").
-        media_path (str, optional): Path to Anki media directory (for PDF creation if text).
+        anki_media_path (str, optional): Path to Anki media directory (for PDF creation if text).
+        pdf_viewer_path (str): Path to the Anki add-on 'pdf viewer and editor' required directory (for PDF creation if text).
     """
     console.rule(
         f"[bold red]Extracted and Filtered Webpage Data[/bold red]"
@@ -390,5 +403,6 @@ def _process_chunks(
                 url_name=url_name,
                 file_name=file_name,
                 content_type=content_type,
-                media_path=media_path
+                anki_media_path=anki_media_path,
+                pdf_viewer_path=pdf_viewer_path
             )

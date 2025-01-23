@@ -24,7 +24,7 @@ from utils.openai_generator import generate_flashcards
 console = Console()
 
 
-def _get_anki_media_path():
+def _get_anki_media_paths():
     """
     Returns the path to the default Anki 'collection.media' folder.
 
@@ -33,17 +33,35 @@ def _get_anki_media_path():
     it uses '~/Library/Application Support'. On Linux or other UNIX-like systems,
     it uses '~/.local/share'. Adjust as necessary if your Anki installation
     differs from these defaults.
+
+    collection_media always refers to Anki's default media path that stores backups and allows syncing of media files.
+
+    pdf_viewer_path always refers to the path required by the 'pdf viewer and editor' Anki add-on,
+    and allows it to access the files as reference material during reviews on any OS. This is required
+    due to macOS sandboxing, which prevents the add-on from accessing files directly from Anki's default
+    media path.
     """
-    # Determine the operating system and set the default path accordingly
+    # Determine the operating system and set the default paths accordingly
     if sys.platform.startswith('win'):
-        return os.path.expandvars(r'%APPDATA%\Anki2\User 1\collection.media')
+        collection_media = os.path.expandvars(r'%APPDATA%\Anki2\User 1\collection.media')
+        pdf_viewer_path = os.path.expanduser(r'~\Documents\Ankifiles')
+        return collection_media, pdf_viewer_path
     elif sys.platform.startswith('darwin'):
-        return os.path.expanduser('~/Library/Application Support/Anki2/User 1/collection.media')
+        collection_media = os.path.expanduser('~/Library/Application Support/Anki2/User 1/collection.media')
+        pdf_viewer_path = os.path.expanduser('~/Ankifiles')
+        return collection_media, pdf_viewer_path
     else:
-        return os.path.expanduser('~/.local/share/Anki2/User 1/collection.media')
+        collection_media = os.path.expanduser('~/.local/share/Anki2/User 1/collection.media')
+        pdf_viewer_path = os.path.expanduser('~/Documents/Ankifiles')
+        return collection_media, pdf_viewer_path
 
 
-def _copy_to_anki_media_path(file_path, content_type, anki_media_path):
+def _copy_to_anki_media_paths(
+        file_path,
+        content_type,
+        anki_media_path,
+        pdf_viewer_path
+):
     """
     Copies the file to the specified Anki media directory.
 
@@ -55,31 +73,41 @@ def _copy_to_anki_media_path(file_path, content_type, anki_media_path):
     Args:
         file_path (str): Full path to the source file.
         content_type (str): Type of the content (image, pdf, or other).
-        anki_media_path (str): The resolved path to Anki's 'collection.media' folder.
+        anki_media_path (str): The resolved path to Anki's 'collection.media' directory.
+        pdf_viewer_path (str): The path to the Anki add-on 'pdf viewer and editor' required directory.
 
     It logs an error if the copy fails for any reason (e.g., permission errors).
     """
     file_name = os.path.basename(file_path)
     try:
-        # If the file is an image, copy it directly to the Anki media folder
+        # If the file is an image, copy it directly to the default Anki media folder
         if content_type in ['image']:
             shutil.copy2(file_path, anki_media_path)
-        # If the file is a PDF, create a '_pdf_files' subdirectory and copy it there
-        elif content_type == 'pdf':
+        # If the file is a PDF:
+        elif content_type in ['pdf']:
+            # For backup and syncing of all pdf files used within Anki
             pdf_dir = os.path.join(anki_media_path, '_pdf_files')
             os.makedirs(pdf_dir, exist_ok=True)
             shutil.copy2(file_path, pdf_dir)
-        else:
-            # Fallback: Copy everything else into the Anki media folder root
-            shutil.copy2(file_path, anki_media_path)
 
-        logger.debug("Copied %s to Anki media path", file_name)
+            # Ensures the pdf file is accessible within Anki flashcards
+            # during review using the 'pdf viewer and editor' Anki add-on
+            os.makedirs(pdf_viewer_path, exist_ok=True)
+            shutil.copy2(file_path, pdf_viewer_path)
+        else:
+            return
+
+        logger.debug("Copied %s to Anki media path(s)", file_name)
     except Exception as e:
         # Log any failures during the copy
         logger.error("Failed to copy %s to Anki media path: %s", file_name, e)
 
 
-def _move_file(file_path, used_dir, context):
+def _move_used_file(
+        file_path,
+        used_dir,
+        context
+):
     """
     Moves a file from its current location into a mirrored subdirectory under `used_dir`.
 
@@ -128,7 +156,7 @@ def _process_file(file_path, context):
         bool: True if flashcard generation was successful, False if skipped/unsupported.
     """
     # 1. Move file to the 'used-files' folder
-    new_file_path = _move_file(file_path, context['used_dir'], context)
+    new_file_path = _move_used_file(file_path, context['used_dir'], context)
 
     # 2. Determine content type to decide how to handle within Anki
     content_type = file_utils.get_content_type(new_file_path, url=None)
@@ -137,7 +165,7 @@ def _process_file(file_path, context):
         return False
 
     # 3. Copy file into the Anki media folder in the correct location
-    _copy_to_anki_media_path(new_file_path, content_type, context['anki_media_path'])
+    _copy_to_anki_media_paths(new_file_path, content_type, context['anki_media_path'], context['pdf_viewer_path'])
 
     # 4. Infer flashcard type based on directory naming convention
     #    If 'problem_solving' is in path, we treat it as problem-solving
@@ -149,7 +177,8 @@ def _process_file(file_path, context):
         url=None,
         metadata=context['metadata'],
         flashcard_type=flashcard_type,
-        anki_media_path=anki_media_path
+        anki_media_path=anki_media_path,
+        pdf_viewer_path=pdf_viewer_path
     )
     return True
 
@@ -172,7 +201,7 @@ def _process_url(file_path, context):
         bool: True if any flashcards were generated, False otherwise.
     """
     # 1. Move the .txt file to 'used-files'
-    new_file_path = _move_file(file_path, context['used_dir'], context)
+    new_file_path = _move_used_file(file_path, context['used_dir'], context)
 
     # 2. Use a regex to match URL patterns in each line
     url_pattern = re.compile(r'(https?://[^\s]+)')
@@ -196,14 +225,19 @@ def _process_url(file_path, context):
             url=url,
             metadata=context['metadata'],
             flashcard_type='url',
-            anki_media_path=anki_media_path
+            anki_media_path=anki_media_path,
+            pdf_viewer_path=pdf_viewer_path
         )
         any_generated = True
 
     return any_generated
 
 
-def _process_directory(directory_path, anki_media_path):
+def _process_directory(
+        directory_path,
+        anki_media_path,
+        pdf_viewer_path
+):
     """
     Orchestrates the processing of the given directory.
 
@@ -214,6 +248,7 @@ def _process_directory(directory_path, anki_media_path):
     Args:
         directory_path (str): The path that the user provided via command line.
         anki_media_path (str): The resolved path to Anki's 'collection.media' folder.
+        pdf_viewer_path (str): The path to the Anki add-on 'pdf viewer and editor' required directory.
 
     Returns:
         bool: True if any file was successfully processed; False otherwise.
@@ -227,6 +262,7 @@ def _process_directory(directory_path, anki_media_path):
         directory_path=directory_path,
         current_directory=directory_path,
         anki_media_path=anki_media_path,
+        pdf_viewer_path=pdf_viewer_path,
         used_dir=used_dir
     )
 
@@ -236,7 +272,13 @@ def _process_directory(directory_path, anki_media_path):
     return processed_any
 
 
-def _process_directory_recursive(directory_path, current_directory, anki_media_path, used_dir):
+def _process_directory_recursive(
+        directory_path,
+        current_directory,
+        anki_media_path,
+        pdf_viewer_path,
+        used_dir
+):
     """
     Recursively descends into each subdirectory of 'directory_path' and processes files.
 
@@ -255,6 +297,7 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
         directory_path (str): The root directory we started with.
         current_directory (str): The directory we are currently scanning.
         anki_media_path (str): Path to Anki's 'collection.media' folder.
+        pdf_viewer_path (str): The path to the Anki add-on 'pdf viewer and editor' required directory.
         used_dir (str): Path to the 'used-files' folder.
 
     Returns:
@@ -298,6 +341,7 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
             'relative_path': relative_path,
             'used_dir': used_dir,
             'anki_media_path': anki_media_path,
+            'pdf_viewer_path': pdf_viewer_path,
             'metadata': metadata,
         }
 
@@ -315,7 +359,7 @@ def _process_directory_recursive(directory_path, current_directory, anki_media_p
         # Skip the 'used-files' subdirectory to avoid reprocessing moved files
         if os.path.basename(sd) == "used-files":
             continue
-        if _process_directory_recursive(directory_path, sd, anki_media_path, used_dir):
+        if _process_directory_recursive(directory_path, sd, anki_media_path, pdf_viewer_path, used_dir):
             processed_something = True
 
     return processed_something
@@ -328,7 +372,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     DIRECTORY_PATH = sys.argv[1]
-    anki_media_path = _get_anki_media_path()
+    anki_media_path, pdf_viewer_path = _get_anki_media_paths()
 
     # Validate the directory path before processing
     if not os.path.isdir(DIRECTORY_PATH):
@@ -336,5 +380,5 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Call the main processing function; exit code 0 if success, 1 otherwise
-    result = _process_directory(DIRECTORY_PATH, anki_media_path)
+    result = _process_directory(DIRECTORY_PATH, anki_media_path, pdf_viewer_path)
     sys.exit(0 if result else 1)
