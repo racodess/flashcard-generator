@@ -14,6 +14,9 @@ import os
 import re
 import sys
 import shutil
+import subprocess
+
+from dotenv import load_dotenv
 
 from rich.console import Console
 
@@ -24,39 +27,43 @@ from utils.openai_generator import generate_flashcards
 console = Console()
 
 
-def _get_anki_media_paths():
+def _is_inside_docker():
     """
-    Returns the path to the default Anki 'collection.media' folder.
-
-    This function relies on common installation paths for Anki, which differ
-    based on the operating system. On Windows, it uses %APPDATA%. On macOS,
-    it uses '~/Library/Application Support'. On Linux or other UNIX-like systems,
-    it uses '~/.local/share'. Adjust as necessary if your Anki installation
-    differs from these defaults.
-
-    collection_media always refers to Anki's default media path that stores backups and allows syncing of media files.
-
-    pdf_viewer_path always refers to the path required by the 'pdf viewer and editor' Anki add-on,
-    and allows it to access the files as reference material during reviews on any OS. This is required
-    due to macOS sandboxing, which prevents the add-on from accessing files directly from Anki's default
-    media path.
+    Simple check to see if we are *inside* a Docker container.
     """
-    # Determine the operating system and set the default paths accordingly
-    if sys.platform.startswith('win'):
-        collection_media = os.path.expandvars(r'%APPDATA%\Anki2\User 1\collection.media')
-        pdf_viewer_path = os.path.expanduser(r'~\Documents\Ankifiles')
-        return collection_media, pdf_viewer_path
-    elif sys.platform.startswith('darwin'):
-        collection_media = os.path.expanduser('~/Library/Application Support/Anki2/User 1/collection.media')
-        pdf_viewer_path = os.path.expanduser('~/Ankifiles')
-        return collection_media, pdf_viewer_path
-    else:
-        collection_media = os.path.expanduser('~/.local/share/Anki2/User 1/collection.media')
-        pdf_viewer_path = os.path.expanduser('~/Documents/Ankifiles')
-        return collection_media, pdf_viewer_path
+    return os.getenv("IN_DOCKER") == "1" or os.path.exists("/.dockerenv")
 
 
-def _copy_to_anki_media_paths(
+def _is_docker_available():
+    """
+    Check if Docker is installed on the user's system by calling 'docker --version'.
+    Returns True if Docker CLI is available, otherwise False.
+    """
+    try:
+        subprocess.run(["docker", "--version"], check=True, capture_output=True)
+        return True
+    except Exception:
+        return False
+
+
+def _build_docker_image():
+    r"""
+    Check if 'flashcard-app' Docker image exists. If not, build it.
+    """
+    # This command returns an empty string if the image doesn't exist
+    result = subprocess.run(["docker", "images", "-q", "flashcard-app"], capture_output=True, text=True)
+    if not result.stdout.strip():
+        console.print("[yellow]Docker image 'flashcard-app' not found. Building...[/yellow]")
+        build_cmd = ["docker", "build", "-t", "flashcard-app", "."]
+        build_result = subprocess.run(build_cmd)
+        if build_result.returncode != 0:
+            logger.error("Failed to build Docker image 'flashcard-app'. Make sure Docker Desktop is installed and running.")
+            sys.exit(1)
+        else:
+            console.print("[green]Successfully built Docker image 'flashcard-app'.[/green]")
+
+
+def _set_media_copy(
         file_path,
         content_type,
         anki_media_path,
@@ -103,7 +110,7 @@ def _copy_to_anki_media_paths(
         logger.error("Failed to copy %s to Anki media path: %s", file_name, e)
 
 
-def _move_used_file(
+def _set_used_file(
         file_path,
         used_dir,
         context
@@ -156,7 +163,7 @@ def _process_file(file_path, context):
         bool: True if flashcard generation was successful, False if skipped/unsupported.
     """
     # 1. Move file to the 'used-files' folder
-    new_file_path = _move_used_file(file_path, context['used_dir'], context)
+    new_file_path = _set_used_file(file_path, context['used_dir'], context)
 
     # 2. Determine content type to decide how to handle within Anki
     content_type = file_utils.get_content_type(new_file_path, url=None)
@@ -165,7 +172,7 @@ def _process_file(file_path, context):
         return False
 
     # 3. Copy file into the Anki media folder in the correct location
-    _copy_to_anki_media_paths(new_file_path, content_type, context['anki_media_path'], context['pdf_viewer_path'])
+    _set_media_copy(new_file_path, content_type, context['anki_media_path'], context['pdf_viewer_path'])
 
     # 4. Infer flashcard type based on directory naming convention
     #    If 'problem_solving' is in path, we treat it as problem-solving
@@ -177,8 +184,8 @@ def _process_file(file_path, context):
         url=None,
         metadata=context['metadata'],
         flashcard_type=flashcard_type,
-        anki_media_path=anki_media_path,
-        pdf_viewer_path=pdf_viewer_path
+        anki_media_path=context['anki_media_path'],
+        pdf_viewer_path=context['pdf_viewer_path']
     )
     return True
 
@@ -201,7 +208,7 @@ def _process_url(file_path, context):
         bool: True if any flashcards were generated, False otherwise.
     """
     # 1. Move the .txt file to 'used-files'
-    new_file_path = _move_used_file(file_path, context['used_dir'], context)
+    new_file_path = _set_used_file(file_path, context['used_dir'], context)
 
     # 2. Use a regex to match URL patterns in each line
     url_pattern = re.compile(r'(https?://[^\s]+)')
@@ -225,8 +232,8 @@ def _process_url(file_path, context):
             url=url,
             metadata=context['metadata'],
             flashcard_type='url',
-            anki_media_path=anki_media_path,
-            pdf_viewer_path=pdf_viewer_path
+            anki_media_path=context['anki_media_path'],
+            pdf_viewer_path=context['pdf_viewer_path']
         )
         any_generated = True
 
@@ -365,20 +372,67 @@ def _process_directory_recursive(
     return processed_something
 
 
-if __name__ == "__main__":
-    # Ensure exactly one argument is provided (the directory path to scan)
-    if len(sys.argv) != 2:
-        logger.error("Usage: python main.py <directory_path>")
+def _main():
+    if len(sys.argv) != 1:
+        logger.error('Usage: python main.py')
         sys.exit(1)
 
-    DIRECTORY_PATH = sys.argv[1]
-    anki_media_path, pdf_viewer_path = _get_anki_media_paths()
-
-    # Validate the directory path before processing
-    if not os.path.isdir(DIRECTORY_PATH):
-        logger.error("The provided path is not a directory: %s", DIRECTORY_PATH)
-        sys.exit(1)
-
-    # Call the main processing function; exit code 0 if success, 1 otherwise
-    result = _process_directory(DIRECTORY_PATH, anki_media_path, pdf_viewer_path)
+    result = _process_directory(
+        directory_path=os.getenv(r'INPUT_DIRECTORY'),
+        anki_media_path=os.getenv(r'ANKI_COLLECTION_MEDIA_PATH'),
+        pdf_viewer_path=os.getenv(r'PDF_VIEWER_MEDIA_PATH')
+    )
     sys.exit(0 if result else 1)
+
+
+if __name__ == "__main__":
+    if _is_inside_docker():
+        console.print(
+            "[green]Docker container detected. Running inside container...[/green]"
+        )
+        _main()
+    else:
+        if not _is_docker_available():
+            logger.error("Usage: Docker must be installed.")
+            sys.exit(1)
+
+        console.print(
+            "[green]Checking docker image...[/green]"
+        )
+        _build_docker_image()
+
+        load_dotenv(
+            dotenv_path=".env",
+            override=True
+        )
+        docker_cmd = [
+            # The command to run container
+            "docker", "run", "--rm", "-it",
+            # So the code knows it's inside Docker
+            "-e", "IN_DOCKER=1",
+            # Pass environment variables to container
+            "-e", f"OPENAI_API_KEY={os.getenv(r'OPENAI_API_KEY')}",
+            "-e", f"ANKI_CONNECT_URL={os.getenv(r'ANKI_CONNECT_URL') or 'http://host.docker.internal:8765'}",
+            "-e", "INPUT_DIRECTORY=/app/content",
+            "-e", "ANKI_COLLECTION_MEDIA_PATH=/app/Anki-collection-media",
+            "-e", "PDF_VIEWER_MEDIA_PATH=/app/Ankifiles",
+            # Mount the host's input directory to container:
+            # Contains all source material being used for flashcard creation
+            "-v", f"{os.getenv(r'INPUT_DIRECTORY')}:/app/content",
+            # Mount the host's Anki collection.media directory to container:
+            # Default Anki media path which allows backups and syncing of files
+            "-v", f"{os.getenv(r'ANKI_COLLECTION_MEDIA_PATH')}:/app/Anki-collection-media",
+            # Mount the host's Anki add-on 'pdf viewer and editor' media directory to container:
+            # Required by the add-on to link PDFs to flashcards as references
+            "-v", f"{os.getenv(r'PDF_VIEWER_MEDIA_PATH')}:/app/Ankifiles",
+            "flashcard-app",
+            # The command inside the container
+            "python", "main.py"
+        ]
+        console.print(
+            f"[green]Restarting in docker container...[/green]"
+        )
+        result_code = subprocess.call(
+            docker_cmd
+        )
+        sys.exit(result_code)

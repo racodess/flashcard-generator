@@ -189,6 +189,7 @@ def _run_generic_flow(
     Returns:
         A model_class instance containing validated flashcard data, or None if something went wrong.
     """
+    print()
     console.rule(f"Running {flow_name}")
 
     # If the content is textual (URL or plain text), we attempt a rewrite to improve clarity
@@ -363,15 +364,14 @@ def _process_chunks(
         anki_media_path (str, optional): Path to Anki media directory (for PDF creation if text).
         pdf_viewer_path (str): Path to the Anki add-on 'pdf viewer and editor' required directory (for PDF creation if text).
     """
-    console.rule(
-        f"[bold red]Extracted and Filtered Webpage Data[/bold red]"
-    )
+    print()
+    console.rule("[bold red]Extracted and Filtered Data[/bold red]")
     # Show the chunk data in console for debugging (if text-based)
     if content_type in ["text", "url"]:
-        console.log(f"[bold red]Chunks:[/bold red]", chunks)
+        console.log("[bold red]Chunks:[/bold red]", chunks)
     else:
         # For PDFs/images, we won't display the raw content
-        console.log(f"[bold red]Chunks:[/bold red]", "Image placeholder text.")
+        console.log("[bold red]Chunks:[/bold red]", "Image placeholder text.")
 
     # Loop through each chunk and generate flashcards for it
     for idx, chunk in enumerate(chunks, start=1):
@@ -379,6 +379,7 @@ def _process_chunks(
         chunk_text = chunk["content"]
 
         logger.info(f"Generating flashcards from chunk {idx}: {heading_title}")
+        print()
         console.rule(f"[bold red]Chunk {idx}:[/bold red] {heading_title}")
 
         # If text or URL, display the chunk contents, otherwise we show a placeholder
