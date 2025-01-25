@@ -110,7 +110,10 @@ def generate_flashcards(
         return
     elif file_path:
         # Identify the file's content type (image, pdf, text, etc.)
-        detected_type = file_utils.get_content_type(file_path, url=None)
+        detected_type = file_utils.get_content_type(
+            file_path=file_path,
+            url=None
+        )
         if detected_type == 'unsupported':
             flashcard_logger.logger.warning("Unsupported file type: %s. Skipping flashcard generation.", file_path)
             return
