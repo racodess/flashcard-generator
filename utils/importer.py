@@ -26,11 +26,8 @@ import re
 import html
 import json
 import urllib.request
-
 from rich.console import Console
-
-from utils.flashcard_logger import logger
-from utils import models, templates
+from utils import models, file_utils, templates, flashcard_logger
 
 console = Console()
 
@@ -76,13 +73,13 @@ def anki_import(
     if result:
         failed_notes = [i for i, note_id in enumerate(result) if note_id is None]
         if not failed_notes:
-            logger.info("Successfully added %d notes to deck '%s'.", len(result), deck_name)
+            flashcard_logger.logger.info("Successfully added %d notes to deck '%s'.", len(result), deck_name)
         else:
-            logger.warning("Failed to add %d notes to deck '%s'.", len(failed_notes), deck_name)
+            flashcard_logger.logger.warning("Failed to add %d notes to deck '%s'.", len(failed_notes), deck_name)
     else:
-        logger.error("Failed to add notes to Anki.")
+        flashcard_logger.logger.error("Failed to add notes to Anki.")
 
-    logger.info("Notes added with IDs: %s", result)
+    flashcard_logger.logger.info("Notes added with IDs: %s", result)
 
 
 def _request(action, **params):
@@ -137,7 +134,7 @@ def _invoke(action, **params):
     Returns:
         Any: The 'result' portion of the response JSON, which can be various data types.
     """
-    anki_connect_url = os.getenv("ANKI_CONNECT_URL", "http://127.0.0.1:8765")
+    anki_connect_url = os.getenv("ANKI_CONNECT_URL") if file_utils.is_inside_docker() else "http://localhost:8765"
 
     request_json = json.dumps(_request(action, **params)).encode("utf-8")
     try:
@@ -146,7 +143,7 @@ def _invoke(action, **params):
         ) as response:
             data = json.load(response)
     except Exception as e:
-        logger.error(
+        flashcard_logger.logger.error(
             "Failed to communicate with AnkiConnect at %s. Make sure Anki is open and AnkiConnect is installed: %s",
             anki_connect_url, e
         )
@@ -181,10 +178,10 @@ def _has_template(template_name):
     """
     existing_models = _invoke("modelNames")
     if template_name in existing_models:
-        logger.info("Anki note type '%s' already exists.", template_name)
+        flashcard_logger.logger.info("Anki note type '%s' already exists.", template_name)
         return
 
-    logger.info("Anki note type '%s' not found. Creating it...", template_name)
+    flashcard_logger.logger.info("Anki note type '%s' not found. Creating it...", template_name)
 
     if template_name == templates.PROBLEM_CARD_NAME:
         fields = templates.PROBLEM_TEMPLATE_FIELDS
@@ -265,7 +262,7 @@ def _has_template(template_name):
         css=css
     )
 
-    logger.info("Anki note type '%s' created successfully.", template_name)
+    flashcard_logger.logger.info("Anki note type '%s' created successfully.", template_name)
 
 
 def _get_deck(deck_name):
@@ -282,7 +279,7 @@ def _get_deck(deck_name):
     Returns:
         Any: The result from the AnkiConnect call, often an integer representing the deck ID.
     """
-    logger.info("Creating or ensuring existence of deck '%s'...", deck_name)
+    flashcard_logger.logger.info("Creating or ensuring existence of deck '%s'...", deck_name)
     return _invoke("createDeck", deck=deck_name)
 
 
@@ -305,7 +302,7 @@ def _get_default_deck():
     """
     existing_decks = _invoke("deckNames")
     if not existing_decks:
-        logger.warning("Failed to retrieve deck names from Anki.")
+        flashcard_logger.logger.warning("Failed to retrieve deck names from Anki.")
         return None
 
     imported_deck_pattern = re.compile(r"^Imported(\d+)$", re.IGNORECASE)
@@ -324,7 +321,7 @@ def _get_default_deck():
     deck_name = f"Imported{next_deck_number}"
     # Ensure the deck actually exists in Anki
     _get_deck(deck_name)
-    logger.info("Importing flashcards to deck: %s", deck_name)
+    flashcard_logger.logger.info("Importing flashcards to deck: %s", deck_name)
     return deck_name
 
 
