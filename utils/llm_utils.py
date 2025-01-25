@@ -8,12 +8,9 @@ This module provides:
     - A global `conversation` used to maintain context across multiple calls (useful for chat-style interactions).
 """
 from enum import Enum
-
 from rich.console import Console
 from openai import OpenAI
-
-from utils import prompts, models
-from utils.flashcard_logger import logger
+from utils import prompts, models, flashcard_logger
 
 console = Console()
 client = OpenAI()
@@ -254,7 +251,7 @@ def _get_completion(
             top_p=0.1,
         )
     except Exception as e:
-        logger.error("Error calling LLM: %s", e, exc_info=True)
+        flashcard_logger.logger.error("Error calling LLM: %s", e, exc_info=True)
         raise
 
     console.log(f"[bold yellow]`{model}` response:[/bold yellow]", completion.choices[0].message.content)

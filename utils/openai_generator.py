@@ -32,14 +32,16 @@ file handling, and Anki integration to provide an end-to-end solution.
 """
 import os
 from rich.console import Console
-
-from utils import models, format_utils, file_utils, importer, templates
-from utils.llm_utils import (
-    PromptType,
-    get_flashcards, get_rewrite, get_system_message, get_tags
+from utils import (
+    models,
+    format_utils,
+    file_utils,
+    llm_utils,
+    importer,
+    templates,
+    flashcard_logger,
+    scraper
 )
-from utils.flashcard_logger import logger
-from utils.scraper import process_url
 
 console = Console()
 
@@ -90,10 +92,10 @@ def generate_flashcards(
 
     if url:
         # When a URL is provided, process with the scraper to retrieve textual data
-        webpage_data = process_url(url, metadata['ignore_sections'])
+        webpage_data = scraper.process_url(url, metadata['ignore_sections'])
         if not webpage_data:
             # No data extracted from the URL, so we skip flashcard generation
-            logger.warning("No data returned from URL: %s. Skipping flashcard generation.", url)
+            flashcard_logger.logger.warning("No data returned from URL: %s. Skipping flashcard generation.", url)
             return
         chunks = webpage_data.get("sections", [])
         # Pass the extracted sections (chunks) for flashcard generation
@@ -110,7 +112,7 @@ def generate_flashcards(
         # Identify the file's content type (image, pdf, text, etc.)
         detected_type = file_utils.get_content_type(file_path, url=None)
         if detected_type == 'unsupported':
-            logger.warning("Unsupported file type: %s. Skipping flashcard generation.", file_path)
+            flashcard_logger.logger.warning("Unsupported file type: %s. Skipping flashcard generation.", file_path)
             return
         content_type = detected_type.lower()
 
@@ -118,11 +120,11 @@ def generate_flashcards(
         try:
             file_content = file_utils.get_data(file_path, content_type)
         except file_utils.UnsupportedFileTypeError as e:
-            logger.warning("Unsupported file type error: %s", e)
+            flashcard_logger.logger.warning("Unsupported file type error: %s", e)
             return
         except Exception as e:
             # Catch other possible errors (permissions, I/O errors, etc.)
-            logger.error("Error reading file %s: %s", file_path, e)
+            flashcard_logger.logger.error("Error reading file %s: %s", file_path, e)
             return
 
         # Wrap the content in a single chunk, using the filename as title
@@ -142,14 +144,14 @@ def generate_flashcards(
         return
     else:
         # Neither a URL nor a file was specified
-        logger.error("Neither file_path nor url provided to generate_flashcards.")
+        flashcard_logger.logger.error("Neither file_path nor url provided to generate_flashcards.")
         return
 
 
 def _run_generic_flow(
     *,
     flow_name: str,
-    prompt_type: PromptType,
+    prompt_type: llm_utils.PromptType,
     content: str,
     tags: list,
     url_name: str,
@@ -194,7 +196,7 @@ def _run_generic_flow(
 
     # If the content is textual (URL or plain text), we attempt a rewrite to improve clarity
     if content_type in ["text", "url"]:
-        rewritten_text = get_rewrite(
+        rewritten_text = llm_utils.get_rewrite(
             user_message=content,
             content_type=content_type
         )
@@ -212,10 +214,10 @@ def _run_generic_flow(
         rewritten_text = content
 
     # Prepare the system message for the LLM based on the prompt_type and tags
-    system_message = get_system_message(prompt_type, tags=tags)
+    system_message = llm_utils.get_system_message(prompt_type, tags=tags)
 
     # Generate flashcards using the LLM. If the content is not text/url, specify run_as_image=True
-    response = get_flashcards(
+    response = llm_utils.get_flashcards(
         conversation=conversation,
         system_message=system_message,
         user_text=rewritten_text,
@@ -225,7 +227,7 @@ def _run_generic_flow(
 
     # If tags are specified, add them to the returned flashcard text
     if tags:
-        response = get_tags(
+        response = llm_utils.get_tags(
             user_message=response,
             tags=tags,
             model_class=model_class
@@ -275,7 +277,7 @@ def _run_problem_flow(
     """
     return _run_generic_flow(
         flow_name="Problem-solving Flow",
-        prompt_type=PromptType.PROBLEM_SOLVING,
+        prompt_type=llm_utils.PromptType.PROBLEM_SOLVING,
         content=content,
         tags=tags,
         url_name=url_name,
@@ -314,7 +316,7 @@ def _run_concept_flow(
     """
     return _run_generic_flow(
         flow_name="Concepts Flow",
-        prompt_type=PromptType.CONCEPTS,
+        prompt_type=llm_utils.PromptType.CONCEPTS,
         content=content,
         tags=tags,
         url_name=url_name,
@@ -378,7 +380,7 @@ def _process_chunks(
         heading_title = chunk.get("title", file_name)
         chunk_text = chunk["content"]
 
-        logger.info(f"Generating flashcards from chunk {idx}: {heading_title}")
+        flashcard_logger.logger.info(f"Generating flashcards from chunk {idx}: {heading_title}")
         print()
         console.rule(f"[bold red]Chunk {idx}:[/bold red] {heading_title}")
 

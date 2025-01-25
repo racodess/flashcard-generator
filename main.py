@@ -202,7 +202,7 @@ def _run_in_docker():
     """
     Runs the application locally (on the host machine) using default file paths.
 
-    Useful for development and testing.
+    Useful for running in any environment.
     """
     flashcard_logger.logger.info(
         "Running in docker container..."

@@ -11,15 +11,11 @@ Usage context:
   - PDFs can be automatically generated for reference material (e.g., concept maps).
 """
 import os
-
-from rich.pretty import pprint
-from rich.console import Console
-
 import markdown2
 from weasyprint import HTML, CSS
-
-from utils.flashcard_logger import logger
-from utils.templates import ADDITIONAL_CSS
+from rich.pretty import pprint
+from rich.console import Console
+from utils import flashcard_logger, templates
 
 console = Console()
 
@@ -76,14 +72,26 @@ def make_pdf(
     Raises:
         Exception: If the PDF generation fails for any reason.
     """
-    pdf_backup_dir = os.path.join(anki_media_path, "_pdf_files")
-
-    os.makedirs(pdf_backup_dir, exist_ok=True)
-    os.makedirs(pdf_viewer_path, exist_ok=True)
-
-    backup_path = os.path.join(pdf_backup_dir, f"{file_name}.pdf")
-    viewer_path = os.path.join(pdf_viewer_path, f"{file_name}.pdf")
-
+    pdf_backup_dir = os.path.join(
+        anki_media_path,
+        "_pdf_files"
+    )
+    os.makedirs(
+        pdf_backup_dir,
+        exist_ok=True
+    )
+    os.makedirs(
+        pdf_viewer_path,
+        exist_ok=True
+    )
+    backup_path = os.path.join(
+        pdf_backup_dir,
+        f"{file_name}.pdf"
+    )
+    viewer_path = os.path.join(
+        pdf_viewer_path,
+        f"{file_name}.pdf"
+    )
     html_content = markdown2.markdown(
         text,
         extras=[
@@ -92,24 +100,21 @@ def make_pdf(
             "code-friendly",
         ]
     )
-
     try:
         # Render the PDF into bytes once
         pdf_bytes = HTML(string=html_content).write_pdf(
-            stylesheets=[CSS(string=ADDITIONAL_CSS)]
+            stylesheets=[CSS(string=templates.ADDITIONAL_CSS)]
         )
-
         # Write to the backup path
         with open(backup_path, 'wb') as backup_file:
             backup_file.write(pdf_bytes)
-
         # Write to the viewer path
         with open(viewer_path, 'wb') as access_file:
             access_file.write(pdf_bytes)
 
-        logger.info("PDF created successfully at: %s and %s", backup_path, viewer_path)
+        flashcard_logger.logger.info("PDF created successfully at: %s and %s", backup_path, viewer_path)
     except Exception as e:
-        logger.error("Failed to create PDF from %s: %s", file_name, e)
+        flashcard_logger.logger.error("Failed to create PDF from %s: %s", file_name, e)
         raise
 
 

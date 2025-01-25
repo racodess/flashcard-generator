@@ -13,12 +13,10 @@ Usage scenario:
     6. A dictionary containing the URL and a list of sections (title + content) is returned.
 """
 import re
-
 from rich.console import Console
 from trafilatura import fetch_url, extract
 from trafilatura.settings import use_config
-
-from utils.flashcard_logger import logger
+from utils import flashcard_logger
 
 console = Console()
 
@@ -56,10 +54,10 @@ def process_url(
 
         If no content is extracted or all headings are filtered out, returns an empty dict.
     """
-    logger.info("Fetching content from: %s", url)
+    flashcard_logger.logger.info("Fetching content from: %s", url)
     downloaded_html = fetch_url(url)
     if not downloaded_html:
-        logger.error("Failed to download content from %s", url)
+        flashcard_logger.logger.error("Failed to download content from %s", url)
         return {}
 
     # Prepare Trafilatura config (e.g., you could adjust minimum text length or other parameters)
@@ -74,7 +72,7 @@ def process_url(
     )
     if not extracted_markdown:
         # If no textual content could be extracted, log a warning and return an empty dict
-        logger.warning("No textual content extracted from %s", url)
+        flashcard_logger.logger.warning("No textual content extracted from %s", url)
         return {}
 
     # Parse the extracted markdown into structured heading-based sections
@@ -86,7 +84,7 @@ def process_url(
 
     # If no valid sections remain, log a warning and return an empty dict
     if not sections:
-        logger.warning("No headings were found or all headings filtered out from %s", url)
+        flashcard_logger.logger.warning("No headings were found or all headings filtered out from %s", url)
         return {}
 
     # Return the URL and the processed sections
