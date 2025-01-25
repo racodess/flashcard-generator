@@ -21,6 +21,7 @@ Error handling:
     - If any note fails to be added (returns None from AnkiConnect), a warning is logged,
       but the process continues for the remaining notes.
 """
+import os
 import re
 import html
 import json
@@ -66,7 +67,10 @@ def anki_import(
         template_name,
         deck_name
     )
-    result = _invoke("addNotes", notes=notes)
+    result = _invoke(
+        "addNotes",
+        notes=notes
+    )
 
     # Check if any notes failed to add (None in the result array)
     if result:
@@ -110,6 +114,12 @@ def _invoke(action, **params):
     """
     Sends a request to AnkiConnect's HTTP endpoint (http://127.0.0.1:8765).
 
+    If you run this application locally, you can set ANKI_CONNECT_URL=http://127.0.0.1:8765.
+
+    If you run with Docker on:
+    - Windows/macOS: you can set it to http://host.docker.internal:8765
+    - Linux with --net=host: you can keep it at http://127.0.0.1:8765.
+
     Steps:
       1. Converts the action and params into JSON.
       2. Sends an HTTP POST request to AnkiConnect.
@@ -127,14 +137,19 @@ def _invoke(action, **params):
     Returns:
         Any: The 'result' portion of the response JSON, which can be various data types.
     """
+    anki_connect_url = os.getenv("ANKI_CONNECT_URL", "http://127.0.0.1:8765")
+
     request_json = json.dumps(_request(action, **params)).encode("utf-8")
     try:
         with urllib.request.urlopen(
-            urllib.request.Request("http://127.0.0.1:8765", request_json)
+            urllib.request.Request(anki_connect_url, request_json)
         ) as response:
             data = json.load(response)
     except Exception as e:
-        logger.error("Failed to communicate with AnkiConnect. Make sure the Anki application is open and AnkiConnect is installed: %s", e)
+        logger.error(
+            "Failed to communicate with AnkiConnect at %s. Make sure Anki is open and AnkiConnect is installed: %s",
+            anki_connect_url, e
+        )
         raise
 
     # Validate the response structure

@@ -115,6 +115,8 @@ def get_tags(directory):
     flattened_tags = _flatten_tags(tags_section, [])
 
     # Log the discovered tags
+    print()
+    console.rule("[bold red]Anki Tags[/bold red]")
     console.log("[bold red] Local tags:", flattened_tags)
 
     return flattened_tags

@@ -120,5 +120,6 @@ def print_flashcards(content):
     Args:
         content (Any): The flashcard data (or a list of flashcards) to display.
     """
-    console.rule("Completed Flashcards")
+    print()
+    console.rule("[bold red]Completed Flashcards[/bold red]")
     pprint(content, expand_all=True)

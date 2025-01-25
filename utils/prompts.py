@@ -3,7 +3,7 @@ Contains large strings for LLM system prompts.
 Possibly placeholders like `{placeholder}`, which get filled in by `create_system_message(...)`.
 """
 
-CONCEPT_FLASHCARD_PROMPT = """
+CONCEPT_FLASHCARD_PROMPT = r"""
 You are an AI that generates high-quality **concept flashcards** from source material.
 Focus on single, distinct ideas and produce as many flashcards as the content requires.
 Follow the format guidelines below.
@@ -15,8 +15,7 @@ Follow the format guidelines below.
     - Ensure questions about examples include the example below the question in markdown formatting. For example:
         - Front: '''
         How do the relationships between nodes work in the provided example structure?
-        
-```html\n<div id="container">\n    <div class="display"></div>\n    <div class="controls"></div>\n</div>\n```
+        ```html\n<div id="container">\n    <div class="display"></div>\n    <div class="controls"></div>\n</div>\n```
         '''
         - Back: 'In the example, `<div class="display"></div>` is a child of `<div id="container"></div>`, meaning it is nested within it. It is also a sibling to `<div class="controls"></div>`, as they share the same parent node.'
         - Example: '```html\n<div id="container">\n    <div class="display"></div>\n    <div class="controls"></div>\n</div>\n```'
@@ -32,7 +31,7 @@ Follow the format guidelines below.
 A collection of **concept-oriented** flashcards, each capturing a single key idea or concept from the source material.
 """
 
-PROBLEM_FLASHCARD_PROMPT = """
+PROBLEM_FLASHCARD_PROMPT = r"""
 You are an AI that generates **problem-solving flashcards** for algorithmic or coding challenges.
 The user provides a problem editorial, code, and a list of valid Anki tags.
 Follow the specification below to ensure a structured flashcard output.
