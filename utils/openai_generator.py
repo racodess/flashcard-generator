@@ -332,6 +332,123 @@ def _run_concept_flow(
     )
 
 
+def _merge_chunks(
+        chunks,
+        file_name
+):
+    """
+    Merges chunks based on a minimum token length. Larger chunks are kept as-is. This method is not intended for images.
+
+    - Chunks < min_chunk_tokens tokens are merged until the total would exceed max_chunk_tokens tokens, at which point we flush the accumulated "buffer" and start a new one.
+
+    - Chunks >= min_chunk_tokens tokens are treated as standalone chunks (we flush any buffer first, then place that chunk by itself).
+
+    This ensures no chunk is lost: every piece of text is either merged
+    or included in the final set of merged chunks for flashcard generation.
+
+    Args:
+        chunks (list): A list of dictionaries, each representing a section:
+                       [
+                         {
+                           "title": <section title>,
+                           "content": <section content>
+                         },
+                         ...
+                       ]
+        file_name (str): Source file name, used for reference.
+
+    Returns:
+        A list of merged chunks.
+    """
+    merged_chunks = []
+
+    # Temporary buffer for accumulating small chunks
+    content_buffer = []
+    running_token_count = 0
+
+    def flush_temp_buffer():
+        """
+        Push the current buffer into merged_chunks if it's not empty.
+        """
+        nonlocal content_buffer, running_token_count
+
+        merged_chunks.append(
+            {"title": "Merged chunks", "content": ""}
+        )
+        for chunk in content_buffer:
+            merged_chunks[-1]['content'] += f"{chunk['title']}:\n{chunk['content']}\n------\n"
+
+        # Reset the buffer
+        content_buffer = []
+        running_token_count = 0
+
+    min_chunk_tokens = 300
+    max_chunk_tokens = 1000
+
+    for idx, chunk in enumerate(chunks, start=1):
+        heading_title = chunk.get("title", file_name)
+        chunk_text = chunk["content"]
+
+        chunk_tokens = llm_utils.get_num_tokens(chunk_text)
+
+        flashcard_logger.logger.info(
+            f"[Chunk] '{heading_title}' has {chunk_tokens} tokens."
+        )
+
+        # Decide how to handle the chunk based on token count:
+        if chunk_tokens < min_chunk_tokens:
+            # This chunk is small; try to fit it into the buffer
+            if running_token_count + chunk_tokens <= max_chunk_tokens:
+                # It fits in the buffer without exceeding max_chunk_tokens
+                flashcard_logger.logger.info(
+                    f"Merging chunk ('{heading_title}') "
+                    f"into buffer (current total={running_token_count} tokens)."
+                )
+                content_buffer.append(
+                    {"title": heading_title, "content": chunk_text}
+                )
+                running_token_count += chunk_tokens
+            else:
+                # Adding this chunk would exceed max_chunk_tokens tokens: flush the buffer first
+                flashcard_logger.logger.info(
+                    f"Buffer ~{running_token_count} tokens; flushing before adding chunk "
+                    f"{idx} ('{heading_title}')."
+                )
+                flush_temp_buffer()
+
+                # Start a fresh buffer with the current chunk
+                content_buffer.append(
+                    {"title": heading_title, "content": chunk_text}
+                )
+                running_token_count = chunk_tokens
+        else:
+            # This chunk is >= min_chunk_tokens tokens
+            # Flush the current buffer first (if it's not empty)
+            if running_token_count > 0:
+                flashcard_logger.logger.info(
+                    f"Flushing buffer (~{running_token_count} tokens) before adding "
+                    f"larger chunk {idx} ('{heading_title}')."
+                )
+                flush_temp_buffer()
+
+            # Treat it as a single chunk
+            flashcard_logger.logger.info(
+                f"Processing chunk ('{heading_title}') as a standalone chunk."
+            )
+            merged_chunks.append(
+                {"title": heading_title, "content": chunk_text}
+            )
+
+    # Flush any leftover data in the buffer
+    if running_token_count > 0:
+        flashcard_logger.logger.info(
+            f"Flushing final buffer (~{running_token_count} tokens)."
+        )
+        flush_temp_buffer()
+
+    return merged_chunks
+
+
 def _process_chunks(
         chunks,
         card_type,
@@ -371,24 +488,25 @@ def _process_chunks(
     """
     print()
     console.rule("[bold red]Extracted and Filtered Data[/bold red]")
-    # Show the chunk data in console for debugging (if text-based)
     if content_type in ["text", "url"]:
         console.log("[bold red]Chunks:[/bold red]", chunks)
     else:
-        # For PDFs/images, we won't display the raw content
         console.log("[bold red]Chunks:[/bold red]", "Image placeholder text.")
 
-    # Loop through each chunk and generate flashcards for it
+    if content_type in ["text", "url"]:
+        chunks = _merge_chunks(
+            chunks=chunks,
+            file_name=file_name
+        )
+
     for idx, chunk in enumerate(chunks, start=1):
         heading_title = chunk.get("title", file_name)
         chunk_text = chunk["content"]
 
-        flashcard_logger.logger.info(f"Generating flashcards from chunk {idx}: {heading_title}")
         print()
         console.rule(f"[bold red]Chunk {idx}:[/bold red] {heading_title}")
 
-        # If text or URL, display the chunk contents, otherwise we show a placeholder
-        if content_type == "text" or content_type == "url":
+        if content_type in ["text", "url"]:
             console.print(chunk_text)
         else:
             console.print("Image placeholder text")

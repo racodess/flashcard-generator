@@ -7,9 +7,10 @@ This module provides:
     - Internal method `_get_completion` for actually calling the LLM endpoint.
     - A global `conversation` used to maintain context across multiple calls (useful for chat-style interactions).
 """
+import tiktoken
 from enum import Enum
-from rich.console import Console
 from openai import OpenAI
+from rich.console import Console
 from utils import prompts, models, flashcard_logger
 
 console = Console()
@@ -39,6 +40,25 @@ PROMPT_TEMPLATES = {
     PromptType.TAGS: prompts.TAG_PROMPT,
     PromptType.REWRITE_TEXT: prompts.REWRITE_PROMPT
 }
+
+gpt_4o = "gpt-4o-2024-08-06"
+gpt_4o_mini = "gpt-4o-mini"
+
+
+def get_num_tokens(
+        string: str,
+        encoding_name: str = None
+) -> int:
+    """
+    Returns the number of tokens in a text string.
+    """
+    encoding = tiktoken.get_encoding(encoding_name) if encoding_name \
+        else tiktoken.encoding_for_model(gpt_4o_mini)
+
+    num_tokens = len(
+        encoding.encode(string)
+    )
+    return num_tokens
 
 
 def get_system_message(
@@ -232,8 +252,6 @@ def _get_completion(
     Raises:
         Exception: If the LLM call fails or times out.
     """
-    gpt_4o = "gpt-4o-2024-08-06"
-    gpt_4o_mini = "gpt-4o-mini"
     model = gpt_4o if run_as_image else gpt_4o_mini
 
     if run_as_image:
