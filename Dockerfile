@@ -1,6 +1,10 @@
 # Use official Python 3.12 image
 FROM python:3.12
 
+# Set environment variables to prevent Python from writing .pyc files and to buffer stdout/stderr
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 # Install required system packages
 #   - poppler-utils (or poppler) for pdf2image
 #   - weasyprint dependencies (libpango, etc.)
@@ -26,5 +30,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project code into container
 COPY . /app
 
-# By default, run "python main.py" with a default folder
-CMD ["python", "main.py", "test_input_dir"]
+# By default, run "python host.py" with a default folder
+CMD ["python", "host.py", "./content"]
