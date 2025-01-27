@@ -26,7 +26,7 @@ Key Components:
     - `_run_generic_flow(...)`: Internal helper that handles LLM prompting, response parsing,
       tagging, and final validation before importing to Anki.
 
-This script is typically called by higher-level logic (e.g., from `main.py`) whenever new files
+This script is typically called by higher-level logic (e.g., from `host.py`) whenever new files
 or URLs are discovered that require flashcard generation. It relies on modules for LLM interaction,
 file handling, and Anki integration to provide an end-to-end solution.
 """
