@@ -1,4 +1,4 @@
-Below is an **updated** `README.md` reflecting the current state of the project, including how to run the app in both **host** and **Docker** modes, new chunk-merging logic, and the latest file-organization details. 
+# README
 
 ---
 
