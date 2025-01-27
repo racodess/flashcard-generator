@@ -77,7 +77,7 @@ An automated pipeline that **analyzes local files or URLs** using Large Language
   - [Anki](https://apps.ankiweb.net/).
     - [AnkiConnect](https://ankiweb.net/shared/info/2055492159) running (for direct flashcard imports).
     - [pdf viewer and editor](https://ankiweb.net/shared/info/319501851) for linking PDFs to flashcards.
-    - [Markdown and KaTeX Support](https://ankiweb.net/shared/info/1087328706) already included in the app's Anki note templates.
+    - [Markdown and KaTeX Support](https://ankiweb.net/shared/info/1087328706) (optional) already included in the app's Anki note templates.
 - **Docker** (optional).  
   - Needed if you plan to run in a docker container using `--run-mode docker`.
 
@@ -175,7 +175,7 @@ If you **omit** the `--run-mode` parameter:
 Your `.env` (which the script automatically loads) should include at least:
 
 - **`OPENAI_API_KEY`** – Your OpenAI API key.  
-- **`ANKI_CONNECT_URL`** – Typically `http://localhost:8765`, or `http://host.docker.internal:8765` if using Docker on Windows. WSL Linux users will require adjustments.
+- **`ANKI_CONNECT_URL`** – Typically `http://localhost:8765`, or `http://host.docker.internal:8765` if using Docker. WSL Linux users will require adjustments.
 - **`INPUT_DIRECTORY`** – The folder on your host system containing files to be processed (e.g., `//c/Users/username/flashcard-generator/content` on Windows).  
 - **`ANKI_COLLECTION_MEDIA_PATH`** – Path to Anki’s `collection.media` folder (e.g., `//c/Users/username/AppData/Roaming/Anki2/User 1/collection.media` on Windows).  
 - **`PDF_VIEWER_MEDIA_PATH`** – Path to the “pdf viewer and editor” add-on directory (e.g. `//c/Users/username/Documents/Ankifiles` on Windows).
