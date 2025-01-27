@@ -338,7 +338,7 @@ This approach drastically improves efficiency by avoiding too many short LLM cal
   Check that Anki is open, and [AnkiConnect](https://ankiweb.net/shared/info/2055492159) is installed.  
   Validate `ANKI_CONNECT_URL` in `.env`.
 
-- **Dependency errors**
+- **Dependency errors**  
   Hopefully Docker is a viable solution, but you may run into issues with poppler, weasyprint, or pdfminer especially on the host system. Review instructions for installing these dependencies on your system, consult an LLM if necessary, and consider using a virtual environment.
 
 ---
