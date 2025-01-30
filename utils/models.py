@@ -136,3 +136,10 @@ class ProblemFlashcard(BaseModel):
         )
     )
     model_config = ConfigDict(extra='forbid')
+
+
+class RewriteValidator(BaseModel):
+    is_valid: bool = Field(
+        description="True if the response is a valid rewrite of the original source material, False otherwise."
+    )
+    model_config = ConfigDict(extra='forbid')

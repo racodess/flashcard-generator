@@ -7,6 +7,8 @@ This module provides:
     - Internal method `_get_completion` for actually calling the LLM endpoint.
     - A global `conversation` used to maintain context across multiple calls (useful for chat-style interactions).
 """
+import sys
+
 import tiktoken
 from enum import Enum
 from openai import OpenAI
@@ -31,6 +33,7 @@ class PromptType(Enum):
     PROBLEM_SOLVING = "problem_solving"
     TAGS = "tags"
     REWRITE_TEXT = "rewrite_text"
+    VALIDATE_REWRITE = "validate_rewrite"
 
 
 # Maps each PromptType to a specific string template from `utils.prompts`.
@@ -38,7 +41,8 @@ PROMPT_TEMPLATES = {
     PromptType.CONCEPTS: prompts.CONCEPT_FLASHCARD_PROMPT,
     PromptType.PROBLEM_SOLVING: prompts.PROBLEM_FLASHCARD_PROMPT,
     PromptType.TAGS: prompts.TAG_PROMPT,
-    PromptType.REWRITE_TEXT: prompts.REWRITE_PROMPT
+    PromptType.REWRITE_TEXT: prompts.REWRITE_PROMPT,
+    PromptType.VALIDATE_REWRITE: prompts.VALIDATE_REWRITE_PROMPT
 }
 
 gpt_4o = "gpt-4o-2024-08-06"
@@ -103,12 +107,33 @@ def get_rewrite(user_message, content_type):
         {"role": "system", "content": system_message},
         {"role": "user", "content": user_message}
     ]
-    completion = _get_completion(
-        messages=messages,
-        response_format=models.TEXT_FORMAT,
-        run_as_image=(content_type not in ["text", "url"])
-    )
-    return completion.choices[0].message.content
+
+    user_mess_token_count = get_num_tokens(user_message)
+    response_token_count = 0
+    response = "No response"
+
+    for i in range(0, 2):
+        if response_token_count < user_mess_token_count:
+            completion = _get_completion(
+                messages=messages,
+                response_format=models.TEXT_FORMAT,
+                run_as_image=(content_type not in ["text", "url"])
+            )
+            response = completion.choices[0].message.content
+            response_token_count = get_num_tokens(response)
+        else:
+            break
+
+    is_valid_rewrite = True
+    if response_token_count < user_mess_token_count:
+        is_valid_rewrite = _is_valid_rewrite(
+            user_message=user_message,
+            response=response
+        )
+
+    return response \
+        if is_valid_rewrite \
+        else sys.exit(f"Invalid rewrite detected. Response tokens: {response_token_count}. User message tokens: {user_mess_token_count}")
 
 
 def get_tags(
@@ -227,6 +252,32 @@ def get_flashcards(
     console.log("\n[bold red]Token Usage:[/bold red]", completion.usage)
 
     return response
+
+
+def _is_valid_rewrite(
+        user_message,
+        response
+) -> bool:
+    system_message = get_system_message(
+        prompt_type=PromptType.VALIDATE_REWRITE,
+        user_message=user_message
+    )
+    messages = [
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": response}
+    ]
+    completion = _get_completion(
+        messages=messages,
+        response_format=models.RewriteValidator,
+        run_as_image=False
+    )
+    response_model = models.RewriteValidator.model_validate_json(
+        completion.choices[0].message.content
+    )
+    if bool(response_model.is_valid):
+        return response_model.is_valid
+    else:
+        sys.exit("response_model.is_valid is not a boolean value.")
 
 
 def _get_completion(

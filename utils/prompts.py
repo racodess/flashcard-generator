@@ -12,6 +12,7 @@ Follow the format guidelines below.
 - **Front**  
     - Formulate a clear, open-ended question that goes beyond simple yes/no.
     - Ensure the question targets a core concept, relationship, or principle.
+    - You will be penalized if the question is about an example.
 - **Back**  
     - Provide a concise, factually correct answer.
     - Include additional details or clarifications if necessary.
@@ -98,4 +99,21 @@ Substantive content should be preserved verbatim and placed into logically struc
 
 **Output**:  
 Your final output must be in valid Markdown, preserving logically structured content from the original text.
+You will be penalized if your response cuts off the end of original text without properly rewriting it.
+"""
+
+VALIDATE_REWRITE_PROMPT = """
+## Objective
+You are a sophisticated AI that validates the responses of another rewrite-assistant AI.
+The rewrite-assistant AI has some freedom in regards to formatting and wording of the original source material.
+However, the rewrite-assistant occasionally cuts off during its rewrite generation, which is a common issue with LLMs.
+Your job is to make sure the rewrite-assistant's response does not cut off the source material at the end.
+
+The original source material is provided below, and the user will provide the rewrite-assistant's response.
+
+### Source Material
+{user_message}
+
+**Output**:  
+Your final output must be a boolean value: **True** If the response does not cut off the source material. **False** otherwise.
 """
