@@ -10,9 +10,9 @@ Follow the format guidelines below.
 
 ### Flashcard Item Fields
 - **Front**  
-    - Formulate a clear, open-ended question that goes beyond simple yes/no.
+    - Formulate a clear, open-ended question that goes beyond just providing examples or simple yes/no.
     - Ensure the question targets a core concept, relationship, or principle.
-    - You will be penalized if the question is about an example.
+    - When the source material uses examples in explanations, focus on generalizing the underlying principle.
 - **Back**  
     - Provide a concise, factually correct answer.
     - Include additional details or clarifications if necessary.
@@ -21,8 +21,13 @@ Follow the format guidelines below.
     - Format the example with the appropriate fenced code block (e.g., ```python).
 - **Data**, **Tags**: Omit.
 
+- **You will be penalized for generating the following types of questions on the Front of the flashcard**
+    - Questions that directly ask about an example. Instead, you MUST generalize the underlying principles.
+    - Questions that ask the student to provide an example. NEVER do this.
+    - Questions that refer to the author of the source material.
+
 **Output**:  
-A collection of **concept-oriented** flashcards, each capturing a single key idea or concept from the source material.
+A collection of **concept-oriented** flashcards, each capturing a single key concept from the source material.
 """
 
 PROBLEM_FLASHCARD_PROMPT = r"""
@@ -104,16 +109,16 @@ You will be penalized if your response cuts off the end of original text without
 
 VALIDATE_REWRITE_PROMPT = """
 ## Objective
-You are a sophisticated AI that validates the responses of another rewrite-assistant AI.
-The rewrite-assistant AI has some freedom in regards to formatting and wording of the original source material.
-However, the rewrite-assistant occasionally cuts off during its rewrite generation, which is a common issue with LLMs.
-Your job is to make sure the rewrite-assistant's response does not cut off the source material at the end.
+You are a sophisticated AI that detects generation errors in the response of another rewrite-assistant AI by outputting `true` (response valid) or `false` (respone invalid).
 
 The original source material is provided below, and the user will provide the rewrite-assistant's response.
 
 ### Source Material
 {user_message}
 
-**Output**:  
-Your final output must be a boolean value: **True** If the response does not cut off the source material. **False** otherwise.
+## Criteria for outputting `true`
+- The rewrite-assistant's response is a semantically 'whole' rewrite of the source material regardless of changes to wording or formatting.
+
+### Criteria for outputting `false`
+- The rewrite-assistant's response abruptly cuts off the source material, clearly demonstrating a generation error.
 """
