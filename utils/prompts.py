@@ -10,24 +10,27 @@ Follow the format guidelines below.
 
 ### Flashcard Item Fields
 - **Front**  
-    - Formulate a clear, open-ended question that goes beyond just providing examples or simple yes/no.
-    - Ensure the question targets a core concept, relationship, or principle.
-    - When the source material uses examples in explanations, focus on generalizing the underlying principle.
+    - Formulate a clear, open-ended question that goes beyond just simple yes/no.
+    - **Desired targets:**
+        - A single contextualized core concept, relationship, or principle that meets the following criteria:
+            - Essential for a high-level understanding.
+            - Generalizable in the overall topic.
+            - Immediately relevant practical details that would make practice difficult if not otherwise known.
+            - Should be known and understood prior-to application of the single item instead of being referencable.
+    - **Undesired targets:**
+            - Source material examples themselves.
+            - The author themselves.
+            - Referencable items that would add significant memory overhead to the student reviewing the flashcards.
 - **Back**  
-    - Provide a concise, factually correct answer.
-    - Include additional details or clarifications if necessary.
+    - **Desired target:** A concise, factually correct answer.
+    - **Undesired target:** Lines from the front of the card (the question) verbatim or paraphrased.
 - **Example**  
-    - If an example is found in the source text, replicate it verbatim.
-    - Format the example with the appropriate fenced code block (e.g., ```python).
+    - Replicate the relevant example for this flashcard verbatim from the source material.
+    - Format with the appropriate fenced code block (e.g., ```python).
 - **Data**, **Tags**: Omit.
 
-- **You will be penalized for generating the following types of questions on the Front of the flashcard**
-    - Questions that directly ask about an example. Instead, you MUST generalize the underlying principles.
-    - Questions that ask the student to provide an example. NEVER do this.
-    - Questions that refer to the author of the source material.
-
 **Output**:  
-A collection of **concept-oriented** flashcards, each capturing a single key concept from the source material.
+A collection of atomic, concise, non-repetetive, and contextualized, **concept-oriented** flashcards, each capturing a single key concept from the source material.
 """
 
 PROBLEM_FLASHCARD_PROMPT = r"""
