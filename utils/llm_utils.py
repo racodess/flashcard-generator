@@ -114,7 +114,7 @@ def get_rewrite(user_message, content_type):
 
     for i in range(0, 2):
         if response_token_count < user_mess_token_count:
-            completion = _get_completion(
+            completion = _get_rewrite_completion(
                 messages=messages,
                 response_format=models.TEXT_FORMAT,
                 run_as_image=(content_type not in ["text", "url"])
@@ -280,13 +280,14 @@ def _is_valid_rewrite(
         sys.exit("response_model.is_valid is not a boolean value.")
 
 
-def _get_completion(
+def _get_rewrite_completion(
     messages: list,
     response_format,
     run_as_image: bool = False
 ):
     """
-    Internal method to make the actual LLM API call via `client.beta.chat.completions.parse`.
+    Internal method to make the actual LLM API call via `client.beta.chat.completions.parse`,
+    which is the same as _get_completion, but **without** word bans or token penalties to allow exact rewrites.
 
     It chooses one of two models based on whether we are sending image data or plain text:
       - `gpt-4o-2024-08-06` if `run_as_image` is True.
@@ -314,6 +315,59 @@ def _get_completion(
         completion = client.beta.chat.completions.parse(
             model=model,
             messages=messages,
+            response_format=response_format,
+            max_completion_tokens=16384,
+            temperature=0,
+            top_p=0.1,
+        )
+    except Exception as e:
+        flashcard_logger.logger.error("Error calling LLM: %s", e, exc_info=True)
+        raise
+
+    console.log(f"[bold yellow]`{model}` response:[/bold yellow]", completion.choices[0].message.content)
+    return completion
+    
+
+def _get_completion(
+    messages: list,
+    response_format,
+    run_as_image: bool = False
+):
+    """
+    Internal method to make the actual LLM API call via `client.beta.chat.completions.parse`,
+    that includes word bans and token penalties to account for the LLM's tendency to ignore certain instructions.
+
+    This is the default LLM call for all prompts except rewrites.
+
+    It chooses one of two models based on whether we are sending image data or plain text:
+      - `gpt-4o-2024-08-06` if `run_as_image` is True.
+      - `gpt-4o-mini` otherwise.
+
+    Args:
+        messages (list): The conversation or prompt messages to send.
+        response_format (pydantic model or TEXT_FORMAT): The expected format of the return data.
+        run_as_image (bool, optional): If True, the model expects image-based input. Defaults to False.
+
+    Returns:
+        openai.ChatCompletion: An object containing choices and usage info for the LLM’s response.
+
+    Raises:
+        Exception: If the LLM call fails or times out.
+    """
+    model = gpt_4o if run_as_image else gpt_4o_mini
+
+    if run_as_image:
+        console.log("[bold cyan]Image placeholder text.[/bold cyan]")
+    else:
+        console.log("[bold cyan]Message sent to LLM:[/bold cyan]", messages)
+
+    try:
+        completion = client.beta.chat.completions.parse(
+            model=model,
+            messages=messages,
+            logit_bias={18582:-100, 4994:-100, 135542:-100, 3587:-100, 5524:-100, 4892:-100}, # Ban the token IDs "example", " example", "provide", " provide", "author", " author" due to the LLM's tendency to ignore instructions
+            frequency_penalty=1.0, # -2.0 to 2.0, defaults to 0; Decreases repetition of the same lines verbatim
+            presence_penalty=0, # -2.0 to 2.0, defaults to 0; Encourages new topics
             response_format=response_format,
             max_completion_tokens=16384,
             temperature=0,
