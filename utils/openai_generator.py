@@ -172,7 +172,6 @@ def _run_generic_flow(
     The flow includes:
       - (Optionally) rewriting text-based content to ensure it's well-structured.
       - Generating flashcards via an LLM call (`get_flashcards(...)`).
-      - Attaching tags (if provided) via `get_tags(...)`.
       - Validating the final result against the corresponding pydantic model class.
       - Setting extra fields (e.g., source file, URL name).
       - Printing debug info and importing to Anki.
@@ -227,14 +226,6 @@ def _run_generic_flow(
         run_as_image=(content_type not in ["text", "url"]),  # For image/PDF flows
         response_format=model_class
     )
-
-    # If tags are specified, add them to the returned flashcard text
-    if tags:
-        response = llm_utils.get_tags(
-            user_message=response,
-            tags=tags,
-            model_class=model_class
-        )
 
     # Convert JSON response to a validated pydantic model instance
     card_model = model_class.model_validate_json(response)
@@ -488,10 +479,6 @@ def _process_chunks(
     """
     print()
     console.rule("[bold red]Extracted and Filtered Data[/bold red]")
-    if content_type in ["text", "url"]:
-        console.log("[bold red]Chunks:[/bold red]", chunks)
-    else:
-        console.log("[bold red]Chunks:[/bold red]", "Image placeholder text.")
 
     if content_type in ["text", "url"]:
         chunks = _merge_chunks(
@@ -508,14 +495,27 @@ def _process_chunks(
 
         if content_type in ["text", "url"]:
             console.print(chunk_text)
+
+            # Extract first 3 lines for tag generation
+            sample_lines = '\n'.join(chunk_text.split('\n')[:7])
+
+            # Get filtered tags from LLM
+            filtered_tags = llm_utils.get_tags(
+                user_message=sample_lines,
+                tags=tags,
+                model_class=models.TEXT_FORMAT
+            )
         else:
             console.print("Image placeholder text")
+            filtered_tags = tags
+
+        console.log("[bold red] Filtered tags:[/bold red]", filtered_tags)
 
         # Decide which flow to run based on the card_type
         if card_type == 'problem':
             _run_problem_flow(
                 content=chunk_text,
-                tags=tags,
+                tags=filtered_tags,
                 url_name=url_name,
                 source_name=file_name,
                 content_type=content_type
@@ -523,7 +523,7 @@ def _process_chunks(
         else:
             _run_concept_flow(
                 content=chunk_text,
-                tags=tags,
+                tags=filtered_tags,
                 url_name=url_name,
                 file_name=file_name,
                 content_type=content_type,

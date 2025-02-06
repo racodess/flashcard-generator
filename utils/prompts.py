@@ -10,24 +10,37 @@ Follow the format guidelines below.
 
 ### Flashcard Item Fields
 - **Front**  
-    - Formulate a clear, open-ended question that goes beyond just simple yes/no.
-    - **Desired targets:**
+    - Formulate a single clear, open-ended question (that goes beyond just simple yes/no) per flashcard.
+    - **Desired Content:**
         - A single contextualized core concept, relationship, or principle that meets the following criteria:
+            - Forms a single question.
             - Essential for a high-level understanding.
             - Generalizable in the overall topic.
             - Immediately relevant practical details that would make practice difficult if not otherwise known.
             - Should be known and understood prior-to application of the single item instead of being referencable.
-    - **Undesired targets:**
+    - **Undesired Content:**
             - Source material examples themselves.
             - The author themselves.
             - Referencable items that would add significant memory overhead to the student reviewing the flashcards.
 - **Back**  
-    - **Desired target:** A concise, factually correct answer.
-    - **Undesired target:** Lines from the front of the card (the question) verbatim or paraphrased.
+    - Formulate a concise, factually correct answer to the question in the front of the card.
+    - **Desired Content:** You **MUST** always have an answer. It must be concise, direct, and to the point.
+    - **Undesired Content:** Lines from the front of the card (the question) repeated verbatim or paraphrased.
 - **Example**  
-    - Replicate the relevant example for this flashcard verbatim from the source material.
+    - Replicate the most relevant example for this flashcard verbatim exactly as it appears in the source material.
     - Format with the appropriate fenced code block (e.g., ```python).
-- **Data**, **Tags**: Omit.
+    - If no examples exist, simply use an empty string.
+    - **Criteria for Inclusion:** An example that already exists in the source material.
+    - **Criteria for Exclusion:** No relevant example exists in the source material. Therefore, use an empty string.
+- **Data**: Omit.
+- **Tags**
+    - Select **ALL** of the most relevant broad and specific Anki tags for the flashcard's content from the list of Anki tags provided below.
+    - **Criteria for Inclusion:** The Anki tag **MUST** exist in the given list below. **DO NOT** make-up your own Anki tags or use external tags.
+
+**Anki Tags**:
+```markdown
+{tags}
+```
 
 **Output**:  
 A collection of atomic, concise, non-repetetive, and contextualized, **concept-oriented** flashcards, each capturing a single key concept from the source material.
@@ -59,7 +72,15 @@ def two_sum(nums, target):
         - A short description (the “what” and “why”).
         - A pitfall if any potential error or tricky detail might occur here.
         - **All lines of code up to that step** in a fenced code block (even if incomplete).
-- **Image**, **External Source**, **External Page**, **Tags**: Omit.
+- **Image**, **External Source**, **External Page**: Omit.
+- **Tags**
+    - Select **ALL** of the most relevant broad and specific Anki tags for the flashcard's content from the list of Anki tags provided below.
+    - **Criteria for Inclusion:** The Anki tag **MUST** exist in the given list below. **DO NOT** make-up your own Anki tags or use external tags.
+
+**Anki Tags**:
+```markdown
+{tags}
+```
 
 ### Formatting Guidance
 - Always use Markdown-compatible structures (headings, lists, fenced code blocks).
@@ -80,7 +101,7 @@ You will be given a list of possible Anki tags, and your job is to select only f
 ```
 
 ### Usage
-Reference this list of tags and assign only the relevant ones to each flashcard.
+Reference this list of tags and assign **ALL** of the **most relevant** broad and specific tags.
 
 **Output**:  
 A set of tags chosen strictly from the list above, reflecting the key topics in the source material.
