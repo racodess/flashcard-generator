@@ -109,11 +109,19 @@ def get_rewrite(user_message, content_type):
     ]
 
     user_mess_token_count = get_num_tokens(user_message)
+
+    # Define the acceptable range (in tokens) of the difference between the original user message and the rewritten response
+    diff_range = 50
+
+    # Ensure that the minimum required tokens is not negative.
+    min_required_tokens = max(user_mess_token_count - diff_range, 0)
+
     response_token_count = 0
     response = "No response"
 
-    for i in range(0, 2):
-        if response_token_count < user_mess_token_count:
+    # Try up to two times to get a rewrite that meets the token threshold.
+    for i in range(2):
+        if response_token_count <= min_required_tokens:
             completion = _get_completion(
                 messages=messages,
                 response_format=models.TEXT_FORMAT,
@@ -125,15 +133,18 @@ def get_rewrite(user_message, content_type):
             break
 
     is_valid_rewrite = True
-    if response_token_count < user_mess_token_count:
+    # Only validate further if the token count is below our acceptable threshold.
+    if response_token_count <= min_required_tokens:
         is_valid_rewrite = _is_valid_rewrite(
             user_message=user_message,
             response=response
         )
 
-    return response \
-        if is_valid_rewrite \
-        else sys.exit(f"Invalid rewrite detected. Response tokens: {response_token_count}. User message tokens: {user_mess_token_count}")
+    if not is_valid_rewrite:
+        sys.exit(f"Invalid rewrite detected. Response tokens: {response_token_count}. "
+                 f"User message tokens: {user_mess_token_count}")
+
+    return response
 
 
 def get_tags(
@@ -318,7 +329,7 @@ def _get_completion_with_penalty(
             model=model,
             messages=messages,
             logit_bias={18582:-100, 4994:-100, 135542:-100, 3587:-100, 5524:-100, 4892:-100}, # Ban the token IDs "example", " example", "provide", " provide", "author", " author" due to the LLM's tendency to ignore instructions
-            frequency_penalty=0.5, # -2.0 to 2.0, defaults to 0; Decreases repetition of the same lines verbatim
+            frequency_penalty=0, # -2.0 to 2.0, defaults to 0; Decreases repetition of the same lines verbatim
             presence_penalty=0, # -2.0 to 2.0, defaults to 0; Encourages new topics
             response_format=response_format,
             max_completion_tokens=16384,
