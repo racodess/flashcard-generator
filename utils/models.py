@@ -17,17 +17,14 @@ class Data(BaseModel):
 
 
 class FlashcardItem(BaseModel):
-    information: str = Field(
-        description="The current piece of information with maximum context, exactly as it appears in the source material, being addressed."
-    )
     front: str = Field(
-        description="The question in markdown format. Use (`) for inline code, and language-detected code-block fencing for code snippets."
+        description="The question in markdown format. Use (`) for inline code."
     )
     back: str = Field(
         description="The answer in markdown format. Use (`) for inline code, and language-detected code-block fencing for code snippets."
     )
     example: str = Field(
-        description = "The example in markdown format. Use (`) for inline code, and language-detected code-block fencing for code snippets."
+        description = "The example in markdown format reproduced exactly as it appears in the source material. Use (`) for inline code, and language-detected code-block fencing for code snippets."
     )
     data: Data
     tags: List[str] = Field(
