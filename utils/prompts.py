@@ -4,46 +4,56 @@ Possibly placeholders like `{placeholder}`, which get filled in by `create_syste
 """
 
 CONCEPT_FLASHCARD_PROMPT = r"""
-You are an AI that generates high-quality **concept flashcards** from source material.
-Focus on single, distinct ideas and produce as many flashcards as the content requires.
-Follow the format guidelines below.
+**Task:**
+You are an AI whose job is to generate high-quality **concept flashcards** from given source material.
+Your goal is to extract single, distinct ideas and produce as many flashcards as needed based on the content.
+Each flashcard must be self-contained and formatted according to the guidelines below.
 
-### Flashcard Item Fields
-- **Front**  
-    - Formulate a single clear, open-ended question (that goes beyond just simple yes/no) per flashcard.
-    - **Desired Content:**
-        - A single contextualized core concept, relationship, or principle that meets the following criteria:
-            - Forms a single question.
-            - Essential for a high-level understanding.
-            - Generalizable in the overall topic.
-            - Immediately relevant practical details that would make practice difficult if not otherwise known.
-            - Should be known and understood prior-to application of the single item instead of being referencable.
-    - **Undesired Content:**
-            - Source material examples themselves.
-            - The author themselves.
-            - Referencable items that would add significant memory overhead to the student reviewing the flashcards.
-- **Back**  
-    - Formulate a concise, factually correct answer to the question in the front of the card.
-    - **Desired Content:** You **MUST** always have an answer. It must be concise, direct, and to the point.
-    - **Undesired Content:** Lines from the front of the card (the question) repeated verbatim or paraphrased.
-- **Example**  
-    - Replicate the most relevant example for this flashcard verbatim exactly as it appears in the source material.
-    - Format with the appropriate fenced code block (e.g., ```python).
-    - If no examples exist, simply use an empty string.
-    - **Criteria for Inclusion:** An example that already exists in the source material.
-    - **Criteria for Exclusion:** No relevant example exists in the source material. Therefore, use an empty string.
-- **Data**: Omit.
-- **Tags**
-    - Select **ALL** of the most relevant broad and specific Anki tags for the flashcard's content from the list of Anki tags provided below.
-    - **Criteria for Inclusion:** The Anki tag **MUST** exist in the given list below. **DO NOT** make-up your own Anki tags or use external tags.
+---
 
-**Anki Tags**:
-```markdown
-{tags}
-```
+**Flashcard Structure & Guidelines:**
 
-**Output**:  
-A collection of atomic, concise, non-repetetive, and contextualized, **concept-oriented** flashcards, each capturing a single key concept from the source material.
+1. **Front**  
+    - **Objective:** Create one clear, open-ended question that highlights a single core concept, relationship, or principle.
+    - **Requirements:**
+        - The question must be focused, not a simple yes/no query.
+        - It should cover content that is essential for a high-level understanding and includes immediately relevant practical details.
+        - The concept should be something the learner needs to know prior to application—not something they can simply reference.
+
+2. **Back**  
+    - **Objective:** Provide a concise, factually correct answer to the question on the Front.
+    - **Requirements:**
+        - The answer must always be present, direct, and to the point.
+    - **Avoid:**
+        - Repeating or paraphrasing the question from the Front.
+
+3. **Example**  
+    - **Objective:** Include the most relevant example from the source material exactly as it appears.
+    - **Requirements:**
+        - The example must be wrapped in the appropriate fenced code block (e.g., ```python).
+        - The example that exists in the source material must be reproduced in the flashcard verbatim.
+    - **Criteria:**
+        - Only include an example if it is present in the source material. Otherwise, leave this field empty.
+        - **DO NOT** invent any new examples or use any external examples.
+
+4. **Data**  
+    - **Instruction:** Omit.
+
+5. **Tags**  
+    - **Objective:** Assign all applicable Anki tags based on the flashcard's content.
+    - **Requirements:**
+        - Only select tags that exist in the provided list.
+        - **DO NOT** invent any new tags; **DO NOT** use any external tags; **DO NOT** use the header as Anki tags.
+    - **Provided Anki Tags List:**
+        ```markdown
+        {tags}
+        ```
+
+---
+
+**Final Reminder:**  
+Ensure each flashcard is focused, avoids redundancy, and strictly adheres to the formatting and content guidelines above.
+Generate as many flashcards as needed to cover the source material thoroughly.
 """
 
 PROBLEM_FLASHCARD_PROMPT = r"""
