@@ -67,7 +67,6 @@ anki_tags:
       - Authentication
 
 ignore_sections:
-  - Introduction
   - Lesson overview
   - Exercise
   - Assignment
